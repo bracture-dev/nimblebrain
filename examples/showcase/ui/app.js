@@ -22,9 +22,9 @@ const PANELS = [
   { id: "board", label: "Board", tools: ["list_cards", "add_card", "move_card"] },
   { id: "table", label: "Table", tools: ["list_cards"] },
   { id: "chart", label: "Chart", tools: ["board_stats"] },
-  { id: "bridge", label: "Bridge", tools: ["export_cards"] },
-  { id: "server", label: "Server", tools: ["describe_server"] },
-  { id: "placements", label: "Placements", tools: ["describe_server"] },
+  { id: "bridge", label: "Buttons", tools: ["export_cards"] },
+  { id: "server", label: "This app", tools: ["describe_server"] },
+  { id: "placements", label: "Places", tools: ["describe_server"] },
 ];
 const STATUSES = ["todo", "doing", "done"];
 const TAGS = ["design", "writing", "ops"];
@@ -85,14 +85,9 @@ async function call(name, args = {}) {
   }
 }
 
-function callsFooter(id) {
-  const tools = PANELS.find((p) => p.id === id)?.tools ?? [];
-  return h(
-    "p",
-    { class: "calls" },
-    "MCP tools this panel calls: ",
-    tools.length ? tools.map((t, i) => [i ? ", " : "", h("code", {}, t)]) : "none",
-  );
+/** Technical detail for developers, collapsed. Nothing here is needed to use the app. */
+function dev(...children) {
+  return h("details", { class: "dev" }, h("summary", {}, "For developers"), ...children);
 }
 
 function errorLine(error) {
@@ -126,7 +121,7 @@ async function renderTour() {
         ? h("span")
         : h("button", { onclick: () => openPanel(step.panel) }, "Open"),
       h("p", {}, step.try),
-      h("p", { class: "muted" }, step.shows),
+      h("details", { class: "dev" }, h("summary", {}, "How it works"), h("p", {}, step.shows)),
     ),
   );
   const next = tourData.next;
@@ -144,6 +139,7 @@ async function renderTour() {
   );
 }
 
+const STATUS_WORD = { pending: "Not started", in_progress: "In progress", done: "Done", skipped: "Skipped" };
 const STATUS_MARK = { pending: "[ ]", in_progress: "[>]", done: "[x]", skipped: "[-]" };
 
 async function renderSetup() {
@@ -161,7 +157,7 @@ async function renderSetup() {
     render();
   };
   const note = h("input", {
-    placeholder: "Note for this step (no keys or secrets)",
+    placeholder: "Add a note (optional)",
     maxlength: 280,
     "aria-label": "Note for the step in progress",
   });
@@ -170,7 +166,7 @@ async function renderSetup() {
     return h(
       "li",
       { class: `step ${step.status}` },
-      h("span", { class: "mark", "aria-label": step.status.replace("_", " ") }, STATUS_MARK[step.status]),
+      h("span", { class: "mark", title: STATUS_WORD[step.status] }, STATUS_MARK[step.status]),
       h("strong", { class: "step-title" }, step.title, step.optional ? " (optional)" : ""),
       h(
         "span",
@@ -196,9 +192,8 @@ async function renderSetup() {
             )
           : null,
       ),
-      h("p", {}, step.instruction),
-      step.via ? h("p", { class: "muted" }, "NimbleBrain call: ", h("code", {}, step.via)) : null,
-      step.note ? h("p", { class: "muted" }, `Note: ${step.note}`) : null,
+      h("p", {}, step.blurb),
+      step.note ? h("p", { class: "muted" }, step.note) : null,
       active ? note : null,
     );
   });
@@ -210,20 +205,16 @@ async function renderSetup() {
       "p",
       { class: "muted" },
       `${data.done} of ${data.total} done${data.skipped ? `, ${data.skipped} skipped` : ""}.`,
-      data.current ? ` Current: ${data.current.title}.` : " All finished.",
+      data.current ? ` Now: ${data.current.title}.` : " All finished.",
     ),
     h(
       "div",
       { class: "row" },
       h("button", { onclick: () => write("next_panel") }, "Next panel"),
-      h("button", { onclick: () => write("reset_setup") }, "Reset checklist"),
+      h("button", { onclick: () => write("reset_setup") }, "Start over"),
     ),
     h("ol", { class: "steps" }, rows),
-    h(
-      "p",
-      { class: "muted" },
-      "Your agent changes name, timezone, theme and model with NimbleBrain's own nb__set_preferences tool. This list only records how far it got.",
-    ),
+    h("p", { class: "muted" }, "Your agent can work through this list with you, or you can press the buttons yourself."),
   );
 }
 
@@ -290,7 +281,7 @@ async function renderBoard() {
     h(
       "p",
       { class: "muted" },
-      "Ask the chat to add or move a card while this is open: it updates without a reload.",
+      "Ask the chat to add or move a card: it shows up here right away.",
     ),
     h(
       "div",
@@ -402,8 +393,6 @@ async function renderTable() {
         `${total ? offset + 1 : 0}-${Math.min(offset + PAGE_SIZE, total)} of ${total}`,
       ),
     ),
-    h("p", { class: "muted" }, "The last call: "),
-    h("pre", {}, `list_cards ${JSON.stringify(args)}`),
   );
 }
 
@@ -454,7 +443,7 @@ async function renderChart() {
     h(
       "p",
       { class: "muted" },
-      `${stats.total} cards, ${stats.points} points. Theme from the host: ${app.theme?.mode ?? "unknown"}.`,
+      `${stats.total} cards, ${stats.points} points. The colors follow your light or dark choice.`,
     ),
     barChart(
       "Points by status",
@@ -492,7 +481,7 @@ function renderBridge() {
     "div",
     { class: "stack" },
     h("h1", {}, "Bridge"),
-    h("p", { class: "muted" }, "Each button asks the host for something only the host can do."),
+    h("p", { class: "muted" }, "Try each button. Each one asks NimbleBrain to do something for this app."),
     h(
       "div",
       { class: "row" },
@@ -515,8 +504,7 @@ function renderBridge() {
       attempt("Open the table page", () => Synapse.open(app, "ui://showcase/table")),
     ),
     out,
-    h("h3", {}, "Host"),
-    h("pre", {}, `host: ${JSON.stringify(app.hostInfo)}\n${supports.join("\n")}`),
+    dev(h("pre", {}, `host: ${JSON.stringify(app.hostInfo)}\n${supports.join("\n")}`)),
   );
 }
 
@@ -529,80 +517,71 @@ async function renderServer() {
   return h(
     "div",
     { class: "stack" },
-    h("h1", {}, "Server"),
-    h("h3", {}, "Tools the agent sees"),
+    h("h1", {}, "What this app offers"),
     h(
       "p",
-      {},
-      info.tools.agent.map((t, i) => [i ? ", " : "", h("code", {}, t)]),
+      { class: "muted" },
+      `Everything on screen is also something your agent can do. This app gives your agent ${info.tools.agent.length} actions, and keeps ${info.tools.appOnly.length} for its own screens.`,
     ),
-    h("h3", {}, "App-only tools (this screen calls them; the agent never sees them)"),
-    h(
-      "p",
-      {},
-      info.tools.appOnly.map((t, i) => [i ? ", " : "", h("code", {}, t)]),
-    ),
-    h("h3", {}, "Instructions sent with the server"),
-    h("pre", {}, info.instructions),
-    h("h3", {}, `Extensions: ${info.extensions.join(", ")}`),
-    info.skills.map((skill) =>
-      h(
-        "details",
-        {},
-        h("summary", {}, `Skill ${skill.name}: ${skill.description}`),
-        h("pre", {}, skill.text),
+    h("p", {}, `Changes received while this page was open: ${notices}.`),
+    dev(
+      h("h3", {}, "Tools the agent sees"),
+      h("p", {}, info.tools.agent.map((t, i) => [i ? ", " : "", h("code", {}, t)])),
+      h("h3", {}, "App-only tools (this screen calls them; the agent never sees them)"),
+      h("p", {}, info.tools.appOnly.map((t, i) => [i ? ", " : "", h("code", {}, t)])),
+      h("h3", {}, "Instructions sent with the server"),
+      h("pre", {}, info.instructions),
+      h("h3", {}, `Extensions: ${info.extensions.join(", ")}`),
+      info.skills.map((skill) =>
+        h(
+          "details",
+          {},
+          h("summary", {}, `Skill ${skill.name}: ${skill.description}`),
+          h("pre", {}, skill.text),
+        ),
       ),
     ),
-    h("h3", {}, "Live sync"),
-    h("p", {}, `This frame has received ${notices} change notices from the server.`),
   );
 }
 
 async function renderPlacements() {
   const info = await describe();
-  const rows = info.placements.map((p) =>
-    h(
-      "tr",
-      {},
-      h("td", {}, h("code", {}, p.slot)),
-      h("td", {}, p.label ?? ""),
-      h("td", {}, h("code", {}, p.resourceUri)),
-      h(
-        "td",
-        {},
-        h(
-          "button",
-          { onclick: () => Synapse.open(app, p.resourceUri).catch((e) => alertLine(e)) },
-          "Open",
-        ),
-      ),
-    ),
-  );
+  const open = (uri) => Synapse.open(app, uri).catch((e) => alertLine(e));
   const context = app.hostContext ?? {};
   return h(
     "div",
     { class: "stack" },
-    h("h1", {}, "Placements"),
+    h("h1", {}, "Where this app appears"),
     h(
       "p",
       { class: "muted" },
-      "Where this server asks NimbleBrain to show its pages. The tour also shows inside a chat answer, through start_tour.",
+      "This app shows up in the sidebar, as its own pages, and inside chat answers.",
     ),
     h(
-      "table",
-      {},
-      h(
-        "thead",
-        {},
-        h("tr", {}, h("th", {}, "Slot"), h("th", {}, "Label"), h("th", {}, "Page"), h("th")),
+      "ul",
+      { class: "steps" },
+      info.placements.map((p) =>
+        h("li", { class: "row" }, h("span", {}, p.label ?? ""), h("button", { onclick: () => open(p.resourceUri) }, "Open")),
       ),
-      h("tbody", {}, rows),
     ),
-    h("h3", {}, "This frame"),
-    h(
-      "pre",
-      {},
-      `page: ${PAGE}\ndisplay mode: ${context.displayMode ?? "unset"}\nsize: ${JSON.stringify(app.containerDimensions)}`,
+    dev(
+      h(
+        "table",
+        {},
+        h("thead", {}, h("tr", {}, h("th", {}, "Slot"), h("th", {}, "Label"), h("th", {}, "Page"))),
+        h(
+          "tbody",
+          {},
+          info.placements.map((p) =>
+            h("tr", {}, h("td", {}, h("code", {}, p.slot)), h("td", {}, p.label ?? ""), h("td", {}, h("code", {}, p.resourceUri))),
+          ),
+        ),
+      ),
+      h(
+        "pre",
+        {},
+        `page: ${PAGE}\ndisplay mode: ${context.displayMode ?? "unset"}\nsize: ${JSON.stringify(app.containerDimensions)}`,
+      ),
     ),
   );
 }
@@ -640,11 +619,14 @@ async function openPanel(id) {
   }
 }
 
-const logBox = h("details", { class: "calls" });
+const logBox = h("details", { class: "calls dev" });
 
 function renderLog() {
+  const tools = PANELS.find((p) => p.id === panel)?.tools ?? [];
   logBox.replaceChildren(
-    h("summary", {}, `Calls from this frame (${callLog.length})`),
+    h("summary", {}, "For developers"),
+    h("p", {}, "MCP tools this panel calls: ", tools.length ? tools.map((t, i) => [i ? ", " : "", h("code", {}, t)]) : "none"),
+    h("p", {}, `Calls from this frame (${callLog.length})`),
     h(
       "pre",
       {},
@@ -694,7 +676,7 @@ async function render() {
       ? h(
           "div",
           { class: "row setup-bar" },
-          h("span", {}, `Setup step: ${active.title}`),
+          h("span", {}, active.title),
           h("span", { style: "flex:1" }),
           h(
             "button",
@@ -712,7 +694,8 @@ async function render() {
           h("button", { onclick: () => openPanel("setup") }, "Back to setup"),
         )
       : null;
-  root.replaceChildren(...[tabs, bar, body, callsFooter(panel), logBox].filter(Boolean));
+  renderLog();
+  root.replaceChildren(...[tabs, bar, body, logBox].filter(Boolean));
   app.updateModelContext(
     { page: PAGE, panel },
     `The person is looking at the showcase ${panel} panel.`,

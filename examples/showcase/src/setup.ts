@@ -20,10 +20,13 @@ export type StepStatus = (typeof STEP_STATUSES)[number];
 
 export interface SetupStep {
   id: string;
+  /** The label the person sees. */
   title: string;
-  /** What to do, in a sentence the agent can read aloud to the person. */
+  /** One friendly line to the person, shown under the label. Nothing technical. */
+  blurb: string;
+  /** Guidance for the agent only: what to ask and how to confirm. The screen never shows it. */
   instruction: string;
-  /** The NimbleBrain call that makes the change, written as `tool {arguments}`; empty when the step changes nothing. */
+  /** The NimbleBrain call that makes the change, written as `tool {arguments}`; empty when the step changes nothing. For the agent only. */
   via: string;
   /** The panel the app shows while this step is in progress. */
   panel: PanelId;
@@ -33,11 +36,30 @@ export interface SetupStep {
 
 /** The panels after "setup", in tour order. Each gets a "first look" step. */
 const LOOK_PANELS = PANEL_IDS.filter((id) => id !== "setup");
+const LOOK_LABEL: Record<string, string> = {
+  tour: "the tour",
+  board: "the board",
+  table: "the table",
+  chart: "the chart",
+  bridge: "what an app can ask of NimbleBrain",
+  server: "what this app offers",
+  placements: "where an app can appear",
+};
+const LOOK_BLURB: Record<string, string> = {
+  tour: "A short walk through what NimbleBrain can do.",
+  board: "A sample task board you can change by hand or by asking.",
+  table: "The same cards as a table you can sort and filter.",
+  chart: "A chart that follows your light or dark choice.",
+  bridge: "Buttons that ask NimbleBrain for a notice, a file or a message.",
+  server: "What this app offers, for the curious.",
+  placements: "The places this app can show up in NimbleBrain.",
+};
 
 export const SETUP_STEPS: readonly SetupStep[] = [
   {
     id: "name",
-    title: "Your display name",
+    title: "Your name",
+    blurb: "What should NimbleBrain call you?",
     instruction: "Ask the person what NimbleBrain should call them, then save it.",
     via: 'nb__set_preferences {"displayName": "<name>"}',
     panel: "setup",
@@ -45,7 +67,8 @@ export const SETUP_STEPS: readonly SetupStep[] = [
   },
   {
     id: "timezone",
-    title: "Your timezone",
+    title: "Time zone",
+    blurb: "Where are you, so times show up right?",
     instruction:
       "Ask where the person is, pick the matching IANA timezone, confirm it with them, then save it.",
     via: 'nb__set_preferences {"timezone": "<Area/City>"}',
@@ -55,6 +78,7 @@ export const SETUP_STEPS: readonly SetupStep[] = [
   {
     id: "theme",
     title: "Light or dark",
+    blurb: "Pick how NimbleBrain looks.",
     instruction: "Ask for light, dark or system. The whole app changes at once when you save it.",
     via: 'nb__set_preferences {"theme": "light" | "dark" | "system"}',
     panel: "setup",
@@ -62,7 +86,8 @@ export const SETUP_STEPS: readonly SetupStep[] = [
   },
   {
     id: "model",
-    title: "Which model answers",
+    title: "Your model",
+    blurb: "Choose which AI model answers you. You can skip this for now.",
     instruction:
       "Ask which model the person wants for new conversations, as provider:model-id. If NimbleBrain refuses it, its message names the configured providers; tell the person and ask again. Skip the step if no provider key is set up yet.",
     via: 'nb__set_preferences {"model": "<provider:model-id>"}',
@@ -71,7 +96,8 @@ export const SETUP_STEPS: readonly SetupStep[] = [
   },
   {
     id: "glassengine",
-    title: "Connect GlassEngine",
+    title: "Bring your own agent",
+    blurb: "Optionally connect your own coding agent so it shows up here in a tab.",
     instruction:
       "Ask whether the person wants their own coding agent to appear in a tab of NimbleBrain through GlassEngine. If yes, connect it as a second connector the same way this app was connected and note what you did. If no, skip.",
     via: "",
@@ -81,7 +107,8 @@ export const SETUP_STEPS: readonly SetupStep[] = [
   ...LOOK_PANELS.map(
     (panel): SetupStep => ({
       id: `look-${panel}`,
-      title: `First look: ${panel}`,
+      title: `Take a look: ${LOOK_LABEL[panel]}`,
+      blurb: LOOK_BLURB[panel],
       instruction: `Show the ${panel} panel with show_panel, say in a sentence what it demonstrates, and mark the step done when the person has seen it.`,
       via: "",
       panel,
