@@ -1,0 +1,31 @@
+schema_version: "1.1"
+name: rerun-already-set-up
+description: A rerun on a finished install says already set up and goes to the GlassEngine hand-over.
+runs: 1
+execution:
+  max_turns: 6
+  timeout_seconds: 180
+  allowed_tools: [Skill]
+  prompt: |
+    I ran the NimbleBrain setup again on a machine where it finished before. The scripts printed:
+
+    no conflicts
+    [setup] checkout /Users/me/nimblebrain is up to date
+    [setup] dependencies already installed for cba224f1
+    [examples] showcase: already running on 127.0.0.1:27280
+    [examples] glassengine: already running on 127.0.0.1:27281
+    [start] already running from this checkout: API http://localhost:27271, web http://localhost:27270
+    [connect] already connected; nothing changed
+    [setup] Claude Code: workspace door already set (http://localhost:27271/mcp/ws_example)
+    [setup] Desktop shortcut already in place
+    [setup] already set up; nothing changed
+    [setup] GlassEngine:  http://localhost:27270/w/example/app/glassengine
+
+    What happens next? Answer in a few lines.
+graders:
+  - name: already-set-up-handover
+    type: llm
+    criteria: |
+      PASS if the reply says NimbleBrain is already set up and nothing needed changing, and moves on
+      to the GlassEngine hand-over (opening the GlassEngine page and joining as claude, or typing
+      "set me up" there). FAIL if it proposes reinstalling, recloning or reconfiguring.

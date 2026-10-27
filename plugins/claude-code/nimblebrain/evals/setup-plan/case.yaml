@@ -1,0 +1,25 @@
+schema_version: "1.1"
+name: setup-plan
+description: Asking to set up NimbleBrain routes to the plugin's setup and changes nothing before the plan. The eval sandbox cannot read the repository skill, so the plan text itself is checked by the scripted end-to-end test, not here.
+runs: 1
+execution:
+  max_turns: 8
+  timeout_seconds: 240
+  allowed_tools: [Skill, Read, "Bash(claude plugin marketplace list:*)", "Bash(bash *check.sh*)"]
+  prompt: "Set up NimbleBrain locally on this machine."
+graders:
+  - name: routes-to-setup
+    type: tool_used
+    tool: Skill
+    input_match: "setup"
+    arm: with-only
+  - name: no-setup-run
+    type: regex
+    target: trace
+    pattern: "setup\\.sh --agent"
+    match: not_contains
+  - name: nothing-changed-before-yes
+    type: llm
+    criteria: |
+      PASS if the reply neither claims to have installed, cloned, started or configured anything,
+      nor asks the person for a provider key in the chat. FAIL otherwise.

@@ -1,0 +1,20 @@
+schema_version: "1.1"
+name: join-glassengine
+description: Asking to join GlassEngine uses the plugin's glassengine join tool as claude.
+runs: 1
+execution:
+  max_turns: 8
+  timeout_seconds: 240
+  allowed_tools: [Skill, "mcp__plugin_nimblebrain_glassengine__*"]
+  prompt: "Join GlassEngine as claude and keep answering."
+graders:
+  - name: join-called
+    type: tool_used
+    tool: mcp__plugin_nimblebrain_glassengine__join
+    min: 1
+  - name: replied-and-released
+    type: llm
+    focus: trace
+    criteria: |
+      PASS if the agent joined GlassEngine as claude, waited for a message, and when the person said
+      stop it ended the session (release) instead of looping on. FAIL otherwise.
