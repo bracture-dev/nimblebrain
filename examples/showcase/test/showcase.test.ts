@@ -120,12 +120,12 @@ describe("setup", () => {
     expect(setup.view()).toMatchObject({ done: 0, panel: "setup", current: { id: "name" } });
     setup.start("name");
     setup.start("timezone");
-    const view = setup.complete("timezone", "  Pacific/Honolulu ");
+    const view = setup.complete("timezone", "  Europe/Lisbon ");
     expect(view.steps.filter((s) => s.status === "in_progress")).toHaveLength(0);
     expect(view.steps.find((s) => s.id === "name")?.status).toBe("pending");
     expect(view.steps.find((s) => s.id === "timezone")).toMatchObject({
       status: "done",
-      note: "Pacific/Honolulu",
+      note: "Europe/Lisbon",
     });
     expect(setup.skip("model", "no key yet").skipped).toBe(1);
     expect(() => setup.skip("name")).toThrow("not optional");

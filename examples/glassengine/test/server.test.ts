@@ -58,6 +58,22 @@ describe("GlassEngine over MCP", () => {
     expect(res.status).toBe(401);
   });
 
+  test("refuses a request from a web page or a foreign host name", async () => {
+    const url = (running as Running).url;
+    const fromPage = await fetch(url, {
+      method: "POST",
+      headers: { origin: "https://example.com" },
+      body: "{}",
+    });
+    expect(fromPage.status).toBe(403);
+    const rebound = await fetch(url, {
+      method: "POST",
+      headers: { host: "attacker.example:80" },
+      body: "{}",
+    });
+    expect(rebound.status).toBe(403);
+  });
+
   test("NimbleBrain's door: agent tools, and the screen's tools marked app-only", async () => {
     const { tools } = await (host as Client).listTools();
     const vis = Object.fromEntries(

@@ -1,4 +1,11 @@
-import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
+import {
+  createMcpHandler,
+  hostHeaderValidationResponse,
+  localhostAllowedHostnames,
+  localhostAllowedOrigins,
+  McpServer,
+  originValidationResponse,
+} from "@modelcontextprotocol/server";
 import * as z from "zod";
 import { PLATFORMS } from "./config.ts";
 import type { Glass, Result } from "./glass.ts";
@@ -425,6 +432,12 @@ export function serve(opts: HttpOptions): Running {
     port: opts.port,
     idleTimeout: 0,
     fetch(req) {
+      // Answer only requests addressed to this machine, so a web page cannot reach the tabs
+      // through a rebound DNS name.
+      const refused =
+        hostHeaderValidationResponse(req, localhostAllowedHostnames()) ??
+        originValidationResponse(req, localhostAllowedOrigins());
+      if (refused) return refused;
       const path = new URL(req.url).pathname;
       if (path === "/health") {
         return Response.json({
