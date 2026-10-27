@@ -2,6 +2,24 @@
 
 Your own coding agents as chat tabs inside NimbleBrain.
 
+You may already use an AI helper on your computer, such as Claude Code. GlassEngine gives that
+helper a chat window inside NimbleBrain. You type there and your helper answers there. NimbleBrain's
+own assistant can read the same conversation and add to it. Both assistants connect through MCP, a
+standard way for AI tools to talk to each other. GlassEngine sits in the middle and holds the chat.
+
+```mermaid
+flowchart LR
+  you([You])
+  nb["NimbleBrain's agent<br/>MCP client"]
+  subgraph ge["GlassEngine: MCP server"]
+    tab["Claude tab<br/>one shared chat"]
+  end
+  cc["Your coding agent,<br/>such as Claude Code<br/>MCP client"]
+  you -- types --> tab
+  nb -- reads and posts --> tab
+  cc -- waits and replies --> tab
+```
+
 GlassEngine is one small MCP server with an MCP App view, running on your machine at
 `http://127.0.0.1:27281/mcp`. Two kinds of clients connect to it:
 
@@ -12,15 +30,10 @@ GlassEngine is one small MCP server with an MCP App view, running on your machin
 
 The screen has one tab per platform: **Claude**, **Codex** and **Other**. When your Claude Code
 session joins, the Claude tab becomes a chat with it. You type in the tab, NimbleBrain's agent can
-read the same chat and post into it, and Claude's answers show up for both of you. Every button
-and switch on the screen calls a GlassEngine tool, and the screen re-reads the server after each
-one, so what you see is what the server holds.
+read the same chat and post into it, and Claude's answers show up for both of you.
 
-```
-NimbleBrain's agent ─┐                                  ┌─ Claude Code session
-                     ├─ MCP ─ GlassEngine (the tabs) ─ MCP ┤
-You, on the screen ──┘                                  └─ Codex session, other agents
-```
+Every button and switch on the screen calls a GlassEngine tool. The screen re-reads the server
+after each one, so what you see is what the server holds.
 
 ## Run
 
@@ -53,8 +66,8 @@ web on `27246`). `<workDir>` is `~/.nimblebrain` unless you set `NB_WORK_DIR`.
 1. **Find your workspace id.** Open NimbleBrain, go to **Workspace settings → MCP**, and copy the
    Server URL shown there; its last part is the `ws_…` id. Or list the folder:
    `ls <workDir>/workspaces`.
-2. **Stop NimbleBrain** (Ctrl+C in the terminal running `bun run dev`). Hand edits to these files
-   are read at start.
+2. **Stop NimbleBrain** (Ctrl+C in the terminal running `bun run dev`). NimbleBrain reads the
+   files below only when it starts.
 3. **Allow a local connector.** In `<workDir>/nimblebrain.json`, add
    `"allowInsecureRemotes": true`. This development setting lets NimbleBrain reach a connector
    served over plain HTTP on your own machine.
@@ -91,7 +104,8 @@ tools for joining a tab.
 
 ## Connect Claude Code
 
-Run this once in a terminal:
+If you installed the NimbleBrain plugin for Claude Code, this connection is already in place; skip
+to [Join](#join). Otherwise, run this once in a terminal:
 
 ```bash
 claude mcp add --transport http --scope user glassengine http://127.0.0.1:27281/mcp
@@ -107,10 +121,10 @@ In the Claude Code session, say:
 
 > join GlassEngine as claude and keep answering
 
-Claude calls `join`, then loops: `wait_for_message`, answer with `reply`, wait again. Each wait
-returns within about 50 seconds, with a message or with "no message yet", and Claude calls it
-again. Claude Code asks before each tool call until you allow the GlassEngine tools; allow them
-once for the session so the loop runs without stopping.
+With the plugin, `/nimblebrain:glass-join` does the same. Claude calls `join`, then loops: `wait_for_message`, answer with `reply`, wait again. Each wait
+returns within 50 seconds, with a message or with "no message yet", and Claude calls it again.
+Claude Code asks before each tool call until you allow the GlassEngine tools. Allow them once for
+the session so the loop runs without stopping.
 
 Now type in the **Claude** tab of GlassEngine. Claude gets the message on its next wait and its
 answer appears in the tab. NimbleBrain's agent can do the same: ask it to "post in the Claude tab
@@ -219,13 +233,17 @@ joined session stays live after its last wait.
 
 ## Codex and other agents
 
-macOS and Claude Code come first; they are what this example is tested with. Codex is the next
-platform. Any agent that speaks MCP over Streamable HTTP can join the same way, as `codex` or
-`other`: add `http://127.0.0.1:27281/mcp` as an MCP server in its configuration (for Codex,
-`codex mcp add glassengine --url http://127.0.0.1:27281/mcp`), start a new session, and ask it to
-"join GlassEngine as codex and keep answering". GlassEngine answers both the current MCP revision
-and the 2025 revisions, so no feature flag is needed for this connection. The Codex step is not
-yet tested end to end.
+This example is tested on macOS with Claude Code. Codex is next and not yet tested end to end.
+Any agent that speaks MCP over Streamable HTTP can join the same way, as `codex` or `other`:
+
+1. Add `http://127.0.0.1:27281/mcp` as an MCP server in the agent's configuration. For Codex, the
+   NimbleBrain plugin for Codex adds it, or run
+   `codex mcp add glassengine --url http://127.0.0.1:27281/mcp`.
+2. Start a new session.
+3. Ask it to "join GlassEngine as codex and keep answering".
+
+GlassEngine accepts the 2025 MCP protocol versions that Codex speaks, so Codex needs no feature
+flag to reach it.
 
 ## Limits
 

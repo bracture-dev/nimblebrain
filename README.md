@@ -45,15 +45,19 @@ bun run dev
 
 One command, one terminal. Output is prefixed `[api]` / `[web]`. Ctrl+C stops both. The dev launchers write `{"auth":{"adapter":"dev"}}` to the workdir's `instance.json` when it has none.
 
-To have a coding agent (Claude Code, Codex or another agent that reads Agent Skills) do the local setup with you, give it the setup skill. Either install it:
+A coding agent can do the local setup with you. Claude Code, Codex, or any agent that reads Agent Skills will work. Give it the setup skill:
 
 ```bash
 npx skills add NimbleBrainInc/nimblebrain --skill nimblebrain-setup
 ```
 
-or paste this one line into the agent: "Set up NimbleBrain locally by following .agents/skills/nimblebrain-setup/SKILL.md from github.com/NimbleBrainInc/nimblebrain". It shows its plan first, checks prerequisites, asks a few choices, installs and verifies, keeps all state inside the checkout, starts the showcase and GlassEngine examples on 127.0.0.1, writes your agent's MCP configuration, and then your own agent finishes setup through the showcase while you watch. You paste your provider key into `.env` yourself. Tested on macOS with Claude Code; Codex is experimental.
+Or paste this line into the agent: "Set up NimbleBrain locally by following .agents/skills/nimblebrain-setup/SKILL.md from github.com/NimbleBrainInc/nimblebrain".
 
-Or install it as a plugin, which also connects the agent to the showcase and GlassEngine and adds a join command (Codex is experimental):
+The agent shows its plan and waits for your OK. Then it checks prerequisites, asks you a few questions, installs NimbleBrain and checks that it runs. It starts two example apps on 127.0.0.1 and connects your agent to both. The showcase is a guided setup tour. GlassEngine gives your agent its own chat tab inside NimbleBrain. From there your agent finishes setup inside NimbleBrain while you watch.
+
+All state stays inside the checkout. You paste your model provider key into `.env` yourself; the agent never sees it. Tested on macOS with Claude Code. Codex is experimental.
+
+Or install the plugin for your agent. It carries the same skill, connects your agent to the showcase and GlassEngine, and adds a join command. Run one line (Codex is experimental):
 
 ```bash
 claude plugin marketplace add NimbleBrainInc/nimblebrain && claude plugin install nimblebrain@nimblebrain

@@ -1,7 +1,7 @@
 {
   "name": "nimblebrain",
   "version": "0.1.0",
-  "description": "Install and run NimbleBrain locally with its showcase and GlassEngine examples, connect Codex to both on 127.0.0.1, and join GlassEngine as codex. Experimental.",
+  "description": "Experimental. Run NimbleBrain on your own machine with its showcase and GlassEngine apps, connect Codex to both, and answer in NimbleBrain from a Codex session.",
   "author": { "name": "NimbleBrain" },
   "homepage": "https://github.com/NimbleBrainInc/nimblebrain",
   "repository": "https://github.com/NimbleBrainInc/nimblebrain",
@@ -12,7 +12,7 @@
   "interface": {
     "displayName": "NimbleBrain",
     "shortDescription": "Run NimbleBrain locally",
-    "longDescription": "Experimental. The NimbleBrain setup skill, connections to the local showcase (127.0.0.1:27280) and GlassEngine (127.0.0.1:27281) apps, and a skill that joins GlassEngine as codex.",
+    "longDescription": "Experimental. Sets up NimbleBrain on your machine, connects Codex to the local showcase (127.0.0.1:27280) and GlassEngine (127.0.0.1:27281) apps, and adds a skill that puts this Codex session in its own chat tab inside NimbleBrain.",
     "developerName": "NimbleBrain",
     "category": "Coding",
     "capabilities": ["Interactive", "Read", "Write"],

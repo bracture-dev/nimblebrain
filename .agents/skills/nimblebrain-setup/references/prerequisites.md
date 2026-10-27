@@ -1,7 +1,7 @@
 # Prerequisites
 
-Offer each command, say what it changes, and run it only after the person says yes. Prefer the
-person's existing package manager. After any install, open a new shell or run `hash -r`, then rerun
+Offer each command and say what it changes. Run it only after the person says yes. Prefer the
+package manager they already use. After any install, open a new shell or run `hash -r`, then rerun
 `scripts/doctor.sh`.
 
 ## git
@@ -13,15 +13,15 @@ person's existing package manager. After any install, open a new shell or run `h
 
 NimbleBrain pins Bun in `package.json` (`"packageManager": "bun@1.4.3"` at the time of writing;
 read the file for the current pin). CI and the container image use the same version, so match it.
-A newer patch release usually works; an older minor does not.
+A newer patch release usually works. An older minor release does not.
 
 - Homebrew: `brew install oven-sh/bun/bun`, then check `bun --version`.
 - npm: `npm install -g bun@1.4.3`.
 - Official installer, pinned: `curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.3"`. Show the
   person the script (`curl -fsSL https://bun.sh/install | less`) before running it, and let them
   choose this route.
-- Already installed at another version: `bun upgrade` moves to the latest release, not the pin.
-  To match the pin exactly, use the pinned installer line above.
+- Already installed at another version: `bun upgrade` moves to the latest release, which may not
+  match the pin. To match the pin exactly, use the pinned installer line above.
 
 ## Node.js 22+
 
@@ -37,11 +37,13 @@ Present on macOS and most Linux installs. Otherwise `sudo apt-get install curl` 
 
 ## Ports
 
-NimbleBrain needs two free TCP ports: the API (default 27271 here) and the web page (27270). Pick
-any other free pair if those are taken; `scripts/doctor.sh --api <port> --web <port>` checks them.
-The showcase and GlassEngine examples use 27280 and 27281 by default.
+NimbleBrain needs two free TCP ports: the API (default 27271 here) and the web page (27270). If
+those are taken, pick any other free pair. `scripts/doctor.sh --api <port> --web <port>` checks
+them. The showcase and GlassEngine examples use 27280 and 27281 by default.
 
 ## Coding agent sign-in
 
-Before connecting the agent (SKILL.md step 10), check the agent itself works in a terminal: `claude` should open without a "Not
-logged in" notice (run `/login` if it shows one), and `codex login status` should report a login.
+Before connecting the agent (SKILL.md step 10), check the agent itself works in a terminal:
+
+- `claude` opens without a "Not logged in" notice. If it shows one, run `/login`.
+- `codex login status` reports a login.

@@ -1,7 +1,7 @@
 {
   "name": "nimblebrain",
   "displayName": "NimbleBrain",
-  "description": "Install and run NimbleBrain locally with its showcase and GlassEngine examples, connect this agent to both on 127.0.0.1, and join GlassEngine from this session with /glass-join.",
+  "description": "Run NimbleBrain on your own machine with its showcase and GlassEngine apps, connect Claude Code to both, and answer in NimbleBrain from this session with /nimblebrain:glass-join.",
   "author": {
     "name": "NimbleBrain"
   },
