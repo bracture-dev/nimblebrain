@@ -18,7 +18,7 @@ This file holds what applies to every change. A rule tied to specific code lives
 bun install                # Install dependencies
 bun run dev                # API (:27247) + Web (:27246) with watch/HMR
 bun run dev:worktree       # Run from any worktree against an isolated workdir on alt ports — see "Worktree dev" below
-bun run dev:api            # API only with auto-restart
+bun run dev --no-web       # API only with auto-restart
 bun run verify             # Full CI parity — runs every subscript below
 bun run verify:static      # format:check + lint + check + the check:* scripts
 bun run verify:test-unit   # test:unit + test:web + test:platform-apps

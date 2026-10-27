@@ -4,7 +4,7 @@ Thanks for your interest in contributing. This guide covers how to set up the de
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) >= 1.1
+- [Bun](https://bun.sh) >= 1.2.0 (`engines.bun`; CI runs 1.4.3, the version `packageManager` pins)
 - [Node.js](https://nodejs.org) >= 22 (required by some web tooling)
 - Docker (optional, for container-based development)
 
@@ -29,18 +29,19 @@ cp .env.example .env
 
 ```bash
 bun run dev        # API (:27247, auto-restart) + web client (:27246, HMR) — single terminal
-bun run dev:api    # API only
-bun run dev:web    # Web client only
-bun run dev:tui    # Interactive TUI (no web client)
+bun run dev --no-web  # API only
+bun run dev:web       # Web client only
 ```
 
 Output is prefixed `[api]` / `[web]`. Ctrl+C stops both.
 
 ## Verification
 
-Before submitting a PR, run the full verification suite:
+Before submitting a PR, run the full verification suite. It type-checks and tests `web/` and the platform app UIs too, so install their dependencies first:
 
 ```bash
+cd web && bun install && cd ..
+bun run install:platform-apps
 bun run verify     # lint → typecheck → unit tests → web tests → integration tests
 ```
 

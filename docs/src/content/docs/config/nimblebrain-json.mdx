@@ -18,13 +18,12 @@ NimbleBrain looks for the config file in this order, stopping at the first match
 
 1. **`--config <path>`** — Explicit path passed as a CLI flag.
 2. **`.nimblebrain/nimblebrain.json`** — Project-local config directory in the current working directory.
-3. **`<defaultWorkDir>/nimblebrain.json`** — Inside the command's default working directory (`~/.nimblebrain` for `bun run start`, the project-local workdir for worktree dev).
-4. **`./nimblebrain.json`** — Current working directory (bare file).
+3. **`<NB_WORK_DIR>/nimblebrain.json`** — Inside the work directory: `NB_WORK_DIR` when set, otherwise `~/.nimblebrain`. `bun run start`, `bun run dev` and `bun run dev:worktree` (which sets `NB_WORK_DIR` to the worktree's own directory) all land here.
 
 If no config file exists at the resolved path, NimbleBrain auto-creates a minimal default file (`{ "$schema": …, "version": "1" }`) as long as the parent directory exists.
 
 <Aside type="caution">
-  `NB_WORK_DIR` does **not** drive config-file discovery. It sets the `workDir` runtime value (where conversations, logs, and workspaces are stored), but the config file is located by the order above. To point at a specific config file, use `--config`.
+  A project-local `.nimblebrain/nimblebrain.json` wins over `NB_WORK_DIR`. It selects only the config file: state still goes to `NB_WORK_DIR`, the file's `workDir`, or `~/.nimblebrain`, in that order. To point at a specific config file, use `--config`.
 </Aside>
 
 ### The override file
@@ -669,7 +668,6 @@ CLI flags take precedence over values in the config file:
 | Flag | Overrides |
 |------|-----------|
 | `--config <path>` | Config file location |
-| `--workdir <dir>` | Default location of the config file and `workDir` fallback |
 | `--port <n>` | `http.port` field |
 | `--debug` | Enables verbose debug event logging |
 
