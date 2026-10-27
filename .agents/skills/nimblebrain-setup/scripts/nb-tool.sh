@@ -4,15 +4,29 @@
 # session does not pick up a server added after it started). It speaks MCP 2026-07-28 itself, so it
 # works from any agent, with or without Codex's mcp_2026_07_28 feature.
 #
-# Usage: nb-tool.sh [--api <port>] --list                 tool names, one per line
-#        nb-tool.sh [--api <port>] <tool> ['<json args>']  e.g. nb__set_preferences '{"theme":"dark"}'
+# Usage: nb-tool.sh [--dir <checkout> | --api <port>] --list                 tool names, one per line
+#        nb-tool.sh [--dir <checkout> | --api <port>] <tool> ['<json args>']  e.g.
+#          nb-tool.sh --dir ~/nimblebrain nb__set_preferences '{"theme":"dark"}'
+# The API port comes from --api, else the install's onboarding.json, else its .env (--dir defaults
+# to $NB_DIR or ~/nimblebrain). It refuses to guess when none of them names a port.
 # Prints the tool's text result. Exit status 1 when the call fails or the tool reports an error.
 
 set -euo pipefail
 
-api=27271
-if [ "${1:-}" = --api ]; then api=$2; shift 2; fi
-tool=${1:?usage: nb-tool.sh [--api <port>] --list | <tool> ['<json args>']}
+. "$(dirname "$0")/lib.sh"
+api="" dir=${NB_DIR:-$HOME/nimblebrain}
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --api) api=$2; shift 2 ;;
+    --dir) dir=$2; shift 2 ;;
+    *) break ;;
+  esac
+done
+case "$dir" in "~") dir=$HOME ;; "~/"*) dir="$HOME/${dir#"~/"}" ;; esac
+[ -n "$api" ] || api=$(state_port "$dir" api)
+[ -n "$api" ] || api=$(env_value "$dir" NB_API_PORT)
+[ -n "$api" ] || { echo "no API port: pass --api <port>, or --dir <checkout> of a NimbleBrain set up by setup.sh" >&2; exit 2; }
+tool=${1:?usage: nb-tool.sh [--dir <checkout> | --api <port>] --list | <tool> ['<json args>']}
 args=${2:-'{}'}
 base="http://127.0.0.1:$api"
 

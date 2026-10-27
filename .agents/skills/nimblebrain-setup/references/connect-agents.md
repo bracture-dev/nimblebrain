@@ -32,7 +32,8 @@ claude mcp get nimblebrain        # expect: Status: Connected
   start. Avoid it inside the NimbleBrain checkout, which should stay stock.
 - A running session does not pick up a server added with `claude mcp add`. Until the next session,
   the agent reaches the same tools with `scripts/nb-tool.sh` (for example
-  `nb-tool.sh nb__set_preferences '{"theme":"dark"}'`). A new session has them as MCP tools.
+  `nb-tool.sh --dir ~/nimblebrain nb__set_preferences '{"theme":"dark"}'`). A new session has them
+  as MCP tools.
 - To remove it: `claude mcp remove nimblebrain` (add `--scope user` if you added it there).
 
 ## Codex CLI

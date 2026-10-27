@@ -26,7 +26,7 @@ ok() { printf 'ok       %s\n' "$*"; }
 warn() { printf 'warn     %s\n' "$*"; }
 miss() { printf 'missing  %s\n' "$*"; missing=1; }
 
-if command -v git >/dev/null 2>&1; then ok "git $(git --version | awk '{print $3}')"; else miss "git"; fi
+if git --version >/dev/null 2>&1; then ok "git $(git --version | awk '{print $3}')"; else miss "git"; fi
 
 pin=""
 if [ -n "$dir" ] && [ -f "$dir/package.json" ]; then

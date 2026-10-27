@@ -65,13 +65,16 @@ running and connected, and the agent itself connected to all three. Pick one way
 
 The terminal command installs the NimbleBrain plugin for your agent (Claude Code if you have it,
 else Codex) and starts the agent on setup. The plugin carries the setup and the connections to the
-showcase and GlassEngine. Nothing needs sudo. Setup adds to your settings and never replaces what
+showcase and GlassEngine. The command never uses sudo; if a tool such as Node.js is missing, the
+plan includes its install command, which may ask for your password. Setup adds to your settings and never replaces what
 is there; run it again any time, and it says "already set up". It also leaves a NimbleBrain shortcut
-on your Desktop. `uninstall.sh` in the skill's scripts removes exactly what setup added.
+on your Desktop (it holds only the localhost address, so an iCloud-synced Desktop copies nothing
+private). `uninstall.sh` in the skill's scripts removes exactly what setup added.
 
 **Add your Anthropic key.** NimbleBrain's own chat needs one; setup through your agent does not.
 Setup offers to open a private Terminal window where you paste it, so your agent never sees it. On
-macOS it goes into your keychain. To do it later:
+macOS it goes into your keychain, and from there only into the NimbleBrain processes `start.sh`
+launches. To do it later:
 `bash ~/nimblebrain/.agents/skills/nimblebrain-setup/scripts/set-key.sh`. Each chat turn costs
 money on your Anthropic account: [pricing](https://www.anthropic.com/pricing).
 

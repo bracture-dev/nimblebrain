@@ -2,7 +2,7 @@
 # Install, start, stop or check the two bundled example apps (showcase and GlassEngine).
 # An example with its own bun.lock gets a frozen install with scripts off; one without (GlassEngine)
 # uses the checkout's root node_modules and starts without an install.
-# Both listen on 127.0.0.1 only. Logs and pids: <checkout>/.nimblebrain-worktree/examples/.
+# Both listen on 127.0.0.1. Logs and pids: <checkout>/.nimblebrain-worktree/examples/.
 # GlassEngine keeps its transcript and token in <checkout>/examples/glassengine/.glassengine/.
 # An example this checkout already runs is reused. A port held by anything else exits 3 ("ASK:").
 #
@@ -12,8 +12,9 @@
 set -euo pipefail
 
 cmd=${1:?usage: examples.sh start|stop|status <checkout> [--showcase-port N] [--glass-port N]}
-dir=$(cd "${2:?usage: examples.sh start|stop|status <checkout>}" && pwd)
+dir=$(cd "${2:?usage: examples.sh start|stop|status <checkout>}" && pwd -P)
 shift 2
+. "$(dirname "$0")/lib.sh"
 sc=27280
 ge=27281
 while [ $# -gt 0 ]; do
@@ -27,29 +28,6 @@ done
 state="$dir/.nimblebrain-worktree/examples"
 mkdir -p "$state"
 
-port_busy() {
-  (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null
-}
-
-stop_one() {
-  local name=$1 pidfile="$state/$1.pid"
-  [ -f "$pidfile" ] || { echo "[examples] $name: not started by this script"; return 0; }
-  local pgid
-  pgid=$(cat "$pidfile")
-  if kill -0 "-$pgid" 2>/dev/null; then
-    kill -TERM "-$pgid"
-    for _ in $(seq 1 10); do
-      kill -0 "-$pgid" 2>/dev/null || break
-      sleep 1
-    done
-    if kill -0 "-$pgid" 2>/dev/null; then kill -KILL "-$pgid" 2>/dev/null || true; fi
-    echo "[examples] $name: stopped"
-  else
-    echo "[examples] $name: not running"
-  fi
-  : >"$pidfile"
-}
-
 start_one() {
   local name=$1 port=$2 token=$3
   local src="$dir/examples/$name" pidfile="$state/$name.pid" log="$state/$name.log"
@@ -58,7 +36,7 @@ start_one() {
     return 0
   fi
   if port_busy "$port"; then
-    if [ -s "$pidfile" ] && kill -0 "-$(cat "$pidfile")" 2>/dev/null; then
+    if owned "$pidfile" "$src" "$port"; then
       echo "[examples] $name: already running on 127.0.0.1:$port"
       return 0
     fi
@@ -76,20 +54,17 @@ start_one() {
     echo "[examples] $name: has no lockfile of its own and the checkout's root dependencies are not installed; run install.sh first" >&2
     return 1
   fi
-  set -m
   if [ -n "$token" ]; then
-    (cd "$src" && env -u PORT PORT="$port" SHOWCASE_TOKEN="$token" nohup bun run start >"$log" 2>&1) </dev/null >/dev/null 2>&1 &
+    PORT=$port SHOWCASE_TOKEN=$token launch "$pidfile" "$log" "$src" bun run start
   else
-    (cd "$src" && env -u PORT PORT="$port" nohup bun run start >"$log" 2>&1) </dev/null >/dev/null 2>&1 &
+    PORT=$port launch "$pidfile" "$log" "$src" bun run start
   fi
-  echo $! >"$pidfile"
-  set +m
   for _ in $(seq 1 30); do
     if port_busy "$port"; then
       echo "[examples] $name: listening on http://127.0.0.1:$port/mcp, log: $log"
       return 0
     fi
-    kill -0 "$(cat "$pidfile")" 2>/dev/null || break
+    kill -0 "-$(sed -n 1p "$pidfile")" 2>/dev/null || break
     sleep 1
   done
   echo "[examples] $name: did not start; last log lines:" >&2
@@ -103,8 +78,8 @@ case "$cmd" in
     start_one glassengine "$ge" ""
     ;;
   stop)
-    stop_one showcase
-    stop_one glassengine
+    stop_group "$state/showcase.pid" "$dir/examples/showcase" "[examples] showcase:" "$sc"
+    stop_group "$state/glassengine.pid" "$dir/examples/glassengine" "[examples] glassengine:" "$ge"
     ;;
   status)
     for pair in "showcase $sc" "glassengine $ge"; do

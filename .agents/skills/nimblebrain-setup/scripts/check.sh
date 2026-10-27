@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # Read-only conflict report for the fast path. Changes nothing. Both agents and both entrypoints run
 # it before the plan, and setup.sh runs it again before it changes anything.
-# Each conflict is one line: what we found, what we expected, and what setup will do:
+# Each conflict is one entry: what we found, what we expected, and what setup will do:
 #   reuse  use what is there as it is      skip  leave it alone and carry on
 #   ask    setup stops until the person decides
 #
 # Usage: check.sh [--agent claude|codex] [--dir <folder>] [--repo <owner/repo|url|path>] [--ref <ref>]
 #                 [--api <port>] [--web <port>] [--showcase-port <port>] [--glass-port <port>]
-# Exit status: 0 nothing to ask, 3 at least one "ask" line.
+# Exit status: 0 nothing to ask, 3 at least one "ask" entry.
 
 set -uo pipefail
 
+. "$(dirname "$0")/lib.sh"
 agent="" dir=${NB_DIR:-$HOME/nimblebrain} repo=NimbleBrainInc/nimblebrain ref=main
 api="" web="" sc="" ge=""
 while [ $# -gt 0 ]; do
@@ -21,29 +22,27 @@ while [ $# -gt 0 ]; do
   esac
   shift 2
 done
+case "$dir" in "~") dir=$HOME ;; "~/"*) dir="$HOME/${dir#"~/"}" ;; esac
 
 asks=0 found=0
 report() { # found, expected, action
   found=1
-  [ "$3" = ask ] && asks=1
+  case "$3" in ask*) asks=1 ;; esac
   printf 'conflict  found: %s\n          expected: %s\n          will: %s\n' "$1" "$2" "$3"
 }
 have() { command -v "$1" >/dev/null 2>&1; }
-port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null || (exec 3<>"/dev/tcp/::1/$1") 2>/dev/null; }
-alive() { [ -s "$1" ] && kill -0 "-$(cat "$1")" 2>/dev/null; }
 
-case "$repo" in /* | ./* | ../* | ~* | *://* | git@*) url=$repo ;; *) url="https://github.com/$repo.git" ;; esac
+case "$repo" in /* | ./* | ../* | "~"* | *://* | git@*) url=$repo ;; *) url="https://github.com/$repo.git" ;; esac
 norm() { local u=${1%/}; u=${u%.git}; [ -d "$u" ] && u=$(cd "$u" && pwd -P); echo "$u"; }
 work="$dir/.nimblebrain-worktree"
-state="$work/onboarding.json"
-getstate() { [ -f "$state" ] && have bun && STATE=$state K=$1 bun -e 'const s = await Bun.file(process.env.STATE).json(); console.log(s.ports?.[process.env.K] ?? "")' 2>/dev/null; }
-envval() { [ -f "$dir/.env" ] && sed -n "s/^$1=\(.*\)/\1/p" "$dir/.env" | tail -1; }
-api=${api:-$(getstate api)} web=${web:-$(getstate web)} sc=${sc:-$(getstate showcase)} ge=${ge:-$(getstate glass)}
-api=${api:-$(envval NB_API_PORT)} web=${web:-$(envval NB_WEB_PORT)}
+api=${api:-$(state_port "$dir" api)} web=${web:-$(state_port "$dir" web)}
+sc=${sc:-$(state_port "$dir" showcase)} ge=${ge:-$(state_port "$dir" glass)}
+api=${api:-$(env_value "$dir" NB_API_PORT)} web=${web:-$(env_value "$dir" NB_WEB_PORT)}
 api=${api:-27271} web=${web:-27270} sc=${sc:-27280} ge=${ge:-27281}
 
-# Tools and versions.
-for t in git bun node curl; do have "$t" || report "$t is not installed" "$t on PATH" "ask (offer the install command)"; done
+# Tools and versions. On macOS, git can be a stub that only offers to install the developer tools.
+git --version >/dev/null 2>&1 || report "git is not installed" "git" "ask (offer the install command)"
+for t in bun node curl; do have "$t" || report "$t is not installed" "$t on PATH" "ask (offer the install command)"; done
 if have node; then
   nv=$(node --version | sed 's/^v//')
   [ "${nv%%.*}" -ge 22 ] 2>/dev/null || report "Node.js $nv" "Node.js 22 or newer" "ask (offer the install command)"
@@ -77,18 +76,18 @@ port_busy 27247 && report "a NimbleBrain on 27246/27247 (NimbleBrain's stock dev
 
 # .env values that differ.
 for pair in "NB_API_PORT=$api" "NB_WEB_PORT=$web" "NB_PUBLIC_ORIGIN=http://localhost:$api" "NB_TELEMETRY_DISABLED=1"; do
-  v=$(envval "${pair%%=*}")
+  v=$(env_value "$dir" "${pair%%=*}")
   [ -z "$v" ] || [ "$v" = "${pair#*=}" ] || report ".env has ${pair%%=*}=$v" "${pair#*=}" "ask (setup never changes an existing value)"
 done
 
-# Ports.
-if alive "$work/dev.pid"; then :; else
+# Ports. Our own processes count only when lib.sh's owned confirms them.
+if ! owned "$work/dev.pid" "$dir" "$api"; then
   for p in "$api" "$web"; do port_busy "$p" && report "port $p is in use, not by this checkout's NimbleBrain" "free, or this checkout's NimbleBrain" "ask (pick another free pair)"; done
 fi
 for pair in "showcase:$sc" "glassengine:$ge"; do
   name=${pair%%:*} p=${pair#*:}
   port_busy "$p" || continue
-  alive "$work/examples/$name.pid" && continue
+  owned "$work/examples/$name.pid" "$dir/examples/$name" "$p" && continue
   if [ "$name" = glassengine ] && curl -fsS "http://127.0.0.1:$p/health" 2>/dev/null | grep -q '"glassengine"'; then
     report "a GlassEngine from another folder on port $p" "free, or this checkout's GlassEngine" "ask (its token differs)"
   else
@@ -117,11 +116,12 @@ door=""
 ws=$(curl -fsS "http://127.0.0.1:$api/v1/bootstrap" 2>/dev/null | (have bun && bun -e 'const j = await Bun.stdin.json().catch(() => ({})); console.log(j.workspaces?.[0]?.id ?? "")'))
 [ -n "$ws" ] && door="http://localhost:$api/mcp/$ws"
 want_url() { case $1 in nimblebrain) echo "$door" ;; showcase) echo "http://127.0.0.1:$sc/mcp" ;; glassengine) echo "http://127.0.0.1:$ge/mcp" ;; esac; }
-if { [ -z "$agent" ] || [ "$agent" = claude ]; } && have claude; then
-  src=$(claude plugin marketplace list --json 2>/dev/null | (have bun && bun -e 'const j = await Bun.stdin.json().catch(() => []); const m = j.find((x) => x.name === "nimblebrain"); console.log(m ? (m.repo ?? m.url ?? m.path ?? "") : "")'))
-  case "$src" in "" | *"${repo%#*}"* | "$(norm "$repo")") ;; *) report "a Claude Code marketplace named nimblebrain from $src" "$repo" "ask (never replaced)" ;; esac
+src_of() { case "$repo" in /* | ./* | ../* | "~"*) norm "$repo" ;; *) echo "${repo%.git}" ;; esac; }
+if { [ -z "$agent" ] || [ "$agent" = claude ]; } && have claude && have bun; then
+  m=$(claude plugin marketplace list --json </dev/null 2>/dev/null | marketplace_source claude "$(src_of)")
+  case "$m" in other*) report "a Claude Code marketplace named nimblebrain from ${m#other }" "$repo" "ask (never replaced)" ;; esac
   for name in nimblebrain showcase glassengine; do
-    u=$(claude mcp get "$name" 2>/dev/null | sed -n 's/^ *URL: //p')
+    u=$(claude mcp get "$name" </dev/null 2>/dev/null | sed -n 's/^ *URL: //p')
     [ -n "$u" ] || continue
     w=$(want_url "$name")
     if [ "$name" = nimblebrain ]; then
@@ -131,15 +131,13 @@ if { [ -z "$agent" ] || [ "$agent" = claude ]; } && have claude; then
     fi
   done
 fi
-if { [ -z "$agent" ] || [ "$agent" = codex ]; } && have codex; then
-  cfg=${CODEX_HOME:-$HOME/.codex}/config.toml
-  if [ -f "$cfg" ] && grep -Eq '^[[:space:]]*mcp_2026_07_28[[:space:]]*=[[:space:]]*false' "$cfg"; then
-    report "Codex feature mcp_2026_07_28 = false in $cfg" "on, so Codex reaches the workspace door" "ask (never flipped; nb-tool.sh still works)"
-  fi
-  src=$(codex plugin marketplace list 2>/dev/null | awk '$1 == "nimblebrain" { print $2 }')
-  case "$src" in "" | *"$(basename "${repo%.git}")"* | "$(norm "$repo")") ;; *) report "a Codex marketplace named nimblebrain at $src" "$repo" "ask (never replaced)" ;; esac
+if { [ -z "$agent" ] || [ "$agent" = codex ]; } && have codex && have bun; then
+  [ "$(codex_feature mcp_2026_07_28)" = false ] &&
+    report "Codex feature mcp_2026_07_28 = false in ${CODEX_HOME:-$HOME/.codex}/config.toml" "on, so Codex reaches the workspace door" "ask (never flipped; nb-tool.sh still works)"
+  m=$(codex plugin marketplace list --json </dev/null 2>/dev/null | marketplace_source codex "$(src_of)")
+  case "$m" in other*) report "a Codex marketplace named nimblebrain from ${m#other }" "$repo" "ask (never replaced)" ;; esac
   for name in nimblebrain showcase glassengine; do
-    u=$(codex mcp get "$name" --json 2>/dev/null | (have bun && bun -e 'const j = await Bun.stdin.json().catch(() => ({})); console.log(j.transport?.url ?? "")'))
+    u=$(codex mcp get "$name" --json </dev/null 2>/dev/null | bun -e 'const j = await Bun.stdin.json().catch(() => ({})); console.log(j.transport?.url ?? "")')
     [ -n "$u" ] || continue
     w=$(want_url "$name")
     if [ "$name" = nimblebrain ]; then

@@ -54,6 +54,23 @@ if [ "$(uname)" != Darwin ]; then
   fi
 fi
 
+# A key already saved is replaced only after a yes. Without a terminal to ask on, NB_REPLACE=1 says yes.
+saved=0
+if [ "$(uname)" = Darwin ]; then
+  security find-generic-password -s "$service" -a "$account" ${keychain:+"$keychain"} >/dev/null 2>&1 && saved=1
+else
+  [ -f "$dir/.env" ] && grep -Eq '^ANTHROPIC_API_KEY=.+' "$dir/.env" && saved=1
+fi
+if [ "$saved" = 1 ]; then
+  if [ -t 0 ]; then
+    printf 'A key is already saved. Replace it? [y/N] '
+    read -r yes
+  else
+    yes=${NB_REPLACE:-n}
+  fi
+  case "$yes" in [yY1]*) ;; *) echo "Kept the saved key; nothing changed."; exit 0 ;; esac
+fi
+
 printf 'Paste the key (nothing shows as you paste), then press Return: '
 if [ -t 0 ]; then IFS= read -rs key; else IFS= read -r key; fi
 echo
@@ -75,9 +92,12 @@ if [ "$(uname)" = Darwin ]; then
 else
   env_file="$dir/.env"
   [ -d "$dir" ] || { echo "No checkout at $dir; pass its folder." >&2; exit 1; }
-  touch "$env_file"
+  [ -L "$env_file" ] && { echo "$env_file is a link; edit the file it points to yourself. Nothing saved." >&2; exit 1; }
+  . "$(dirname "$0")/lib.sh"
+  backup_once "$dir" "$env_file"
+  (umask 077 && touch "$env_file")
   chmod 600 "$env_file"
-  tmp=$(mktemp "$dir/.env.XXXXXX")
+  tmp=$(umask 077 && mktemp "$dir/.env.XXXXXX")
   grep -v '^ANTHROPIC_API_KEY=' "$env_file" >"$tmp" || true
   printf 'ANTHROPIC_API_KEY=%s\n' "$key" >>"$tmp"
   unset key

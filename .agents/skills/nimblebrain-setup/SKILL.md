@@ -18,7 +18,7 @@ flowchart LR
   C --> D["The agent joins GlassEngine<br/>and runs setup on screen"]
 ```
 
-Everything stays on this machine: every address below is `127.0.0.1` or `localhost`. Work in the
+Every address you use below is `127.0.0.1` or `localhost`. Work in the
 open. Say what you are about to run, run it, and show what happened.
 
 ## Two ways in
@@ -61,12 +61,15 @@ question (AskUserQuestion in Claude Code); otherwise ask in plain text with the 
    > 27271, the showcase on 27280, GlassEngine on 27281; telemetry off). I install from the
    > lockfiles, start all three, add the showcase and GlassEngine to your workspace, connect this
    > agent to all three, put a NimbleBrain shortcut on your Desktop, and open GlassEngine for you.
-   > Anything already set up is reused; I add, I never replace. NimbleBrain's own chat needs an
-   > Anthropic key, which you can add after.
+   > The two connectors run on plain HTTP on localhost, so I set NimbleBrain's development setting
+   > `allowInsecureRemotes`, which allows that for localhost addresses only. Anything already set up
+   > is reused; I add, I never replace. NimbleBrain's own chat needs an Anthropic key, which you can
+   > add after.
 
    For a missing tool, add its install command to the same plan, from
    [references/prerequisites.md](references/prerequisites.md) (Homebrew when `brew` exists). A
-   password or sudo prompt the person types is fine. On **Change something**, ask what, then go on
+   password or sudo prompt the person types for that install is fine; the setup itself never uses
+   sudo. On **Change something**, ask what, then go on
    with those values, or follow the step-by-step sections below.
 3. **Run it.** `bash "$SCRIPTS/setup.sh" --agent <claude|codex>` with the same flags. It may need to
    run outside your sandbox (`git clone`, local ports). It clones or updates the checkout, installs
@@ -76,11 +79,13 @@ question (AskUserQuestion in Claude Code); otherwise ask in plain text with the 
    `NimbleBrain.webloc` shortcut with NimbleBrain's icon on the Desktop, which opens NimbleBrain in
    the default browser. Exit 3 with a line starting `ASK:` means it found a conflict and stopped:
    show that line and ask. A second
-   run on a finished install says "already set up" and goes straight to the hand-over.
+   run on a finished install says "already set up" and goes straight to the hand-over. It leaves a
+   recorded checkout where it is; `--update` fast-forwards it.
 4. **The key, optional.** Ask **Do you have an Anthropic API key?** with **Yes**, **No, help me get
    one** and **Later**. NimbleBrain's own chat uses it; setup through GlassEngine does not.
-   - Yes: open a private Terminal window running the script, where they paste the key:
-     `osascript -e "tell application \"Terminal\" to do script \"bash '$SCRIPTS/set-key.sh' --have-key\""`.
+   - Yes: open a private Terminal window running the script, where they paste the key. The path
+     goes in as an argument, never inside the script text:
+     `osascript -e 'on run argv' -e 'tell application "Terminal" to do script "bash " & quoted form of (item 1 of argv) & " --have-key"' -e 'end run' "$SCRIPTS/set-key.sh"`.
    - No: the same without `--have-key`; it opens the Anthropic Console keys page too.
    - Later: give them `bash "$SCRIPTS/set-key.sh"` to run in their own terminal any time.
 
@@ -93,7 +98,7 @@ question (AskUserQuestion in Claude Code); otherwise ask in plain text with the 
    `GlassEngine:` line `setup.sh` printed; `open` needs to run outside your sandbox). Then join as
    `claude` or `codex` with this plugin's `glassengine` tools and keep answering. Tell them to type
    **set me up** in your tab. For NimbleBrain's own tools in this session (for example
-   `nb__set_preferences`), use `bash "$SCRIPTS/nb-tool.sh" <tool> '<json>'`; a new session has them
+   `nb__set_preferences`), use `bash "$SCRIPTS/nb-tool.sh" --dir "$NB_DIR" <tool> '<json>'`; a new session has them
    as MCP tools.
 6. **Finish** as in step 12 below, including the conflict lines from step 1.
 
@@ -226,7 +231,8 @@ bash "$SCRIPTS/start.sh" "$NB_DIR"
 ```
 
 `start.sh` reuses an instance this checkout already runs and stops with `ASK:` on a port anything
-else holds, naming a free pair. It passes a key saved by `set-key.sh` to NimbleBrain only.
+else holds, naming a free pair. A key saved by `set-key.sh` goes only into the environment of
+the NimbleBrain processes it starts (the launcher, the API and the web dev server).
 Otherwise it starts `bun run dev:worktree` in the background, logs to `$WORK/dev.log`, and waits
 for the API and the web page. The person can instead run `cd "$NB_DIR" && bun run dev:worktree` in
 their own terminal.
@@ -272,7 +278,8 @@ NimbleBrain reads these files only at start, so stop it first:
 `bash "$SCRIPTS/stop.sh" "$NB_DIR"`. That stops the examples too.
 
 1. In `$WORK/nimblebrain.json`, merge `{ "allowInsecureRemotes": true }`. This development setting
-   lets the workspace reach connectors on this machine over plain HTTP. Back the file up first.
+   lets the workspace reach connectors on localhost addresses over plain HTTP. Back the file up
+   first (`connect.sh` keeps a copy under `.nimblebrain-worktree/backups/`).
 2. In `$WORK/workspaces/$WS/workspace.json`, append two entries to `connectors`:
    - the showcase entry from its README (URL `http://127.0.0.1:27280/mcp`);
    - the GlassEngine entry from its README (URL `http://127.0.0.1:27281/mcp`), with the token
