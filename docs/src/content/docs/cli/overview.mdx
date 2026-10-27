@@ -46,7 +46,6 @@ NimbleBrain loads its configuration from a `nimblebrain.json` file. The CLI reso
 | 1 | `--config` / `-c` flag | Exactly the path you specify |
 | 2 | Project-local directory | `./.nimblebrain/nimblebrain.json` (used only when it exists) |
 | 3 | Default work directory | `<NB_WORK_DIR>/nimblebrain.json`, where `NB_WORK_DIR` defaults to `~/.nimblebrain` |
-| 4 | Current directory | `./nimblebrain.json` |
 
 Both `bun run start` and `bun run dev` default to the same global work directory at `~/.nimblebrain`. `bun run dev` starts the server (`bun run src/cli/index.ts serve`) under the hood, so it inherits that default unless you override it with `--config` or `NB_WORK_DIR`.
 

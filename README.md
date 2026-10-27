@@ -48,7 +48,7 @@ One command, one terminal. Output is prefixed `[api]` / `[web]`. Ctrl+C stops bo
 For API-only development (no web client):
 
 ```bash
-bun run dev:api
+bun run dev --no-web
 ```
 
 ## How It Works
@@ -78,6 +78,8 @@ The engine loops until the model stops calling tools, hits the iteration limit (
 
 ```bash
 bun install
+cd web && bun install && cd ..   # verify type-checks and tests web/
+bun run install:platform-apps    # ...and the platform app UIs
 bun run verify           # lint → typecheck → test → test:web → test:integration
 
 # Or individually:
@@ -194,7 +196,7 @@ This split is the workspace isolation boundary: two workspaces in the same deplo
 
 ### `nimblebrain.json` (instance config)
 
-Create a `nimblebrain.json` in your working directory. A minimal file:
+Create a `nimblebrain.json` in the work directory (`~/.nimblebrain`, or `NB_WORK_DIR` when set). A minimal file:
 
 ```json
 {
@@ -275,7 +277,7 @@ Pass flags after the command, e.g. `bun run start --port 8080` or `bun run dev -
 
 | Flag | Scope | Purpose |
 |------|-------|---------|
-| `--config <path>`, `-c` | serve, dev | Config file (default: `./nimblebrain.json`) |
+| `--config <path>`, `-c` | serve, dev | Config file (default: see [Config resolution](#configuration-reference)) |
 | `--debug` | serve, dev | Enable debug event logging |
 | `--port <number>` | serve, dev | HTTP server port (default: 27247) |
 | `--no-web` | dev | Skip web dev server (API only) |
@@ -587,10 +589,10 @@ Placements with a `route` field get React Router routes in `App.tsx`. Routes fro
 - `<workDir>/instance.json` — the identity provider (`dev`, `oidc`, or `workos` adapter). Required: `serve` refuses to start without it.
 
 **Config resolution** for `nimblebrain.json` (when no `--config` flag):
-1. `--workdir <dir>` → `<dir>/nimblebrain.json`
-2. Otherwise → `./nimblebrain.json` (CWD)
+1. `./.nimblebrain/nimblebrain.json`, when that file exists
+2. Otherwise → `<NB_WORK_DIR>/nimblebrain.json`, where `NB_WORK_DIR` defaults to `~/.nimblebrain`
 
-`NB_WORK_DIR` overrides `workDir` from either the config file or `--workdir`.
+`NB_WORK_DIR` also overrides `workDir` from the config file.
 
 #### Connector Entry Fields (in `workspace.json`)
 
