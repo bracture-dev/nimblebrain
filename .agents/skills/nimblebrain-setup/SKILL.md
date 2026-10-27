@@ -136,7 +136,9 @@ and skip to step 12.
 bash "$SCRIPTS/examples.sh" start "$NB_DIR"
 ```
 
-It installs each from its lockfile with scripts off and starts it bound to `127.0.0.1`: the
+It installs the showcase from its own lockfile with scripts off; GlassEngine has no lockfile of its
+own and runs on the checkout's root dependencies, so it starts without an install. Both bind
+`127.0.0.1`: the
 showcase on `27280` (with the bearer token `local-showcase`, as its README's Run section shows) and
 GlassEngine on `27281`. Logs: `$WORK/examples/`. Each example's `README.md` "Run" section is the
 authority if anything differs; `examples.sh status "$NB_DIR"` shows what is listening.

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Install, start, stop or check the two bundled example apps (showcase and GlassEngine).
+# An example with its own bun.lock gets a frozen install with scripts off; one without (GlassEngine)
+# uses the checkout's root node_modules and starts without an install.
 # Both listen on 127.0.0.1 only. State and logs: <checkout>/.nimblebrain-worktree/examples/.
 #
 # Usage: examples.sh start|stop|status <checkout> [--showcase-port <port>] [--glass-port <port>]
@@ -61,11 +63,13 @@ start_one() {
     echo "[examples] $name: port $port is in use by something else; pass another port" >&2
     return 1
   fi
-  if [ ! -f "$src/bun.lock" ]; then
-    echo "[examples] $name: no bun.lock, so a frozen install is not possible; ask the person before a plain install" >&2
+  if [ -f "$src/bun.lock" ]; then
+    (cd "$src" && bun install --frozen-lockfile --ignore-scripts >"$state/$name.install.log" 2>&1)
+  elif [ ! -d "$dir/node_modules" ]; then
+    # No lockfile of its own: it resolves imports from the checkout's root node_modules.
+    echo "[examples] $name: has no lockfile of its own and the checkout's root dependencies are not installed; run install.sh first" >&2
     return 1
   fi
-  (cd "$src" && bun install --frozen-lockfile --ignore-scripts >"$state/$name.install.log" 2>&1)
   set -m
   if [ -n "$token" ]; then
     (cd "$src" && env -u PORT PORT="$port" SHOWCASE_TOKEN="$token" nohup bun run start >"$log" 2>&1) &
