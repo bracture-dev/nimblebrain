@@ -72,9 +72,9 @@ start_one() {
   fi
   set -m
   if [ -n "$token" ]; then
-    (cd "$src" && env -u PORT PORT="$port" SHOWCASE_TOKEN="$token" nohup bun run start >"$log" 2>&1) &
+    (cd "$src" && env -u PORT PORT="$port" SHOWCASE_TOKEN="$token" nohup bun run start >"$log" 2>&1) </dev/null >/dev/null 2>&1 &
   else
-    (cd "$src" && env -u PORT PORT="$port" nohup bun run start >"$log" 2>&1) &
+    (cd "$src" && env -u PORT PORT="$port" nohup bun run start >"$log" 2>&1) </dev/null >/dev/null 2>&1 &
   fi
   echo $! >"$pidfile"
   set +m
