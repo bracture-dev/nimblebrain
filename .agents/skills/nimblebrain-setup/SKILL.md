@@ -270,7 +270,12 @@ showcase and GlassEngine entries. The same page shows the raw HTTP shape for any
 
 ## 11. Hand over
 
-Tell the person, in these words:
+If this session already has the GlassEngine tools (the plugin route), ask: **Connect to
+GlassEngine now?** On a yes, tell them to open NimbleBrain at `http://localhost:<WEB>` and go to
+the GlassEngine app, then join as `claude` (or `codex`) yourself and keep answering. They type
+**set me up** in your tab.
+
+Otherwise, tell the person, in these words:
 
 1. Open NimbleBrain at `http://localhost:<WEB>` and go to the GlassEngine app.
 2. Open a new Claude Code session (or the desktop Code tab) beside it. Allow the GlassEngine tools
