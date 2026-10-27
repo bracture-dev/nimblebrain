@@ -79,6 +79,7 @@ backup_once() {
   local dir=$1 file=$2 name dest
   [ -f "$file" ] || return 0
   name=$(printf '%s' "${file#"$dir"/}" | tr '/' '_')
+  name=${name#.}
   dest="$dir/.nimblebrain-worktree/backups"
   ls "$dest/$name".*.bak >/dev/null 2>&1 && return 0
   (umask 077 && mkdir -p "$dest" && cp "$file" "$dest/$name.$(date +%Y%m%d%H%M%S).bak")

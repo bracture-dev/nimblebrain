@@ -53,7 +53,7 @@ args=(--agent "$agent" --dir "$dir" --repo "$repo" --ref "$ref")
 [ -z "$sc" ] || args+=(--showcase-port "$sc")
 [ -z "$ge" ] || args+=(--glass-port "$ge")
 rc=0
-bash "$here/check.sh" "${args[@]}" || rc=$?
+[ ! -f "$here/check.sh" ] || bash "$here/check.sh" "${args[@]}" || rc=$?
 [ "$rc" = 0 ] || { [ "$rc" = 3 ] && ask "resolve the conflicts above first (check.sh)"; exit 1; }
 git --version >/dev/null 2>&1 || ask "git is missing. Offer the install command from references/prerequisites.md."
 for tool in bun node curl; do
