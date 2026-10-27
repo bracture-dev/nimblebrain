@@ -1,0 +1,18 @@
+{
+  "name": "nimblebrain",
+  "displayName": "NimbleBrain",
+  "description": "Install and run NimbleBrain locally with its showcase and GlassEngine examples, connect this agent to both on 127.0.0.1, and join GlassEngine from this session with /glass-join.",
+  "author": {
+    "name": "NimbleBrain"
+  },
+  "homepage": "https://github.com/NimbleBrainInc/nimblebrain",
+  "repository": "https://github.com/NimbleBrainInc/nimblebrain",
+  "license": "Apache-2.0",
+  "keywords": [
+    "nimblebrain",
+    "mcp",
+    "local",
+    "setup",
+    "glassengine"
+  ]
+}

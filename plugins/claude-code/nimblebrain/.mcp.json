@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "glassengine": {
+      "type": "http",
+      "url": "http://127.0.0.1:${NIMBLEBRAIN_GLASS_PORT:-27281}/mcp"
+    },
+    "showcase": {
+      "type": "http",
+      "url": "http://127.0.0.1:${NIMBLEBRAIN_SHOWCASE_PORT:-27280}/mcp",
+      "headers": {
+        "Authorization": "Bearer ${NIMBLEBRAIN_SHOWCASE_TOKEN:-local-showcase}"
+      }
+    }
+  }
+}

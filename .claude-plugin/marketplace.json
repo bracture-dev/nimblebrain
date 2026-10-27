@@ -1,0 +1,14 @@
+{
+  "name": "nimblebrain",
+  "description": "Run NimbleBrain locally and put your own coding agent inside it.",
+  "owner": {
+    "name": "NimbleBrain"
+  },
+  "plugins": [
+    {
+      "name": "nimblebrain",
+      "source": "./plugins/claude-code/nimblebrain",
+      "description": "The NimbleBrain setup skill, connections to the local showcase and GlassEngine apps, and /glass-join."
+    }
+  ]
+}
