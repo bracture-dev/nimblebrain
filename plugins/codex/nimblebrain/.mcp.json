@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "glassengine": {
+      "url": "http://127.0.0.1:27281/mcp"
+    },
+    "showcase": {
+      "url": "http://127.0.0.1:27280/mcp",
+      "http_headers": {
+        "Authorization": "Bearer local-showcase"
+      }
+    }
+  }
+}

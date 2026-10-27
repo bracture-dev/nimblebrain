@@ -1,0 +1,21 @@
+{
+  "name": "nimblebrain",
+  "version": "0.1.0",
+  "description": "Install and run NimbleBrain locally with its showcase and GlassEngine examples, connect Codex to both on 127.0.0.1, and join GlassEngine as codex. Experimental.",
+  "author": { "name": "NimbleBrain" },
+  "homepage": "https://github.com/NimbleBrainInc/nimblebrain",
+  "repository": "https://github.com/NimbleBrainInc/nimblebrain",
+  "license": "Apache-2.0",
+  "keywords": ["nimblebrain", "mcp", "local", "setup", "glassengine"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "NimbleBrain",
+    "shortDescription": "Run NimbleBrain locally",
+    "longDescription": "Experimental. The NimbleBrain setup skill, connections to the local showcase (127.0.0.1:27280) and GlassEngine (127.0.0.1:27281) apps, and a skill that joins GlassEngine as codex.",
+    "developerName": "NimbleBrain",
+    "category": "Coding",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": ["Set up NimbleBrain locally", "Join GlassEngine as codex and keep answering"]
+  }
+}
