@@ -215,6 +215,17 @@ elif [ "$(cat "$shortcut")" = "$(webloc)" ]; then
   step "Desktop shortcut already in place"
 else
   step "conflict: $shortcut exists with other content; left as it is (expected http://localhost:$web)"
+  shortcut=""
+fi
+
+# Our shortcut gets NimbleBrain's icon, dark unless the Mac is in light mode. Setting it again is
+# harmless; the file's content does not change.
+if [ -n "$shortcut" ] && [ -f "$shortcut" ] && [ "$(uname)" = Darwin ]; then
+  variant=light
+  [ "$(defaults read -g AppleInterfaceStyle 2>/dev/null || true)" = Dark ] && variant=dark
+  png="$dir/.agents/skills/nimblebrain-setup/assets/nimblebrain-icon-$variant-512.png"
+  [ -f "$png" ] && osascript -l JavaScript -e "ObjC.import('AppKit'); \$.NSWorkspace.sharedWorkspace.setIconForFileOptions(\$.NSImage.alloc.initWithContentsOfFile('$png'), '$shortcut', 0)" >/dev/null 2>&1 ||
+    true
 fi
 
 # 7. Record it, keeping the other agent's entry.

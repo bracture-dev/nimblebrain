@@ -15,5 +15,6 @@
     "local",
     "setup",
     "glassengine"
-  ]
+  ],
+  "icon": "./.claude-plugin/icon.png"
 }

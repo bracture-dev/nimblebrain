@@ -45,26 +45,43 @@ bun run dev
 
 One command, one terminal. Output is prefixed `[api]` / `[web]`. Ctrl+C stops both. The dev launchers write `{"auth":{"adapter":"dev"}}` to the workdir's `instance.json` when it has none.
 
-A coding agent can do the local setup with you. Claude Code, Codex, or any agent that reads Agent Skills will work. Give it the setup skill:
+### Set up NimbleBrain with your coding agent
+
+Your coding agent can do the whole local setup: NimbleBrain, its showcase and GlassEngine apps, all
+running and connected, and the agent itself connected to all three. Pick one way in.
+
+| From a terminal | From a Claude Code or Codex session |
+|---|---|
+| `curl -fsSL https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/install.sh \| bash` | Paste: *Set up NimbleBrain locally: follow https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/.agents/skills/nimblebrain-setup/SKILL.md* |
+| For Codex: `... \| bash -s -- --codex` | |
+
+> **What you do**
+> 1. Paste one command, or one line into your agent.
+> 2. Say **Yes** to the plan. It lists anything already on your machine that differs, before it changes anything.
+> 3. Answer **Do you have an Anthropic API key?** Yes, No (it opens the Console for you), or Later.
+> 4. Approve the tool prompts your agent shows. From the session already open: type `/reload-plugins` in Claude Code, or `codex resume --last` in Codex, when it asks.
+>
+> Then type **set me up** in your agent's tab in GlassEngine, which opens for you.
+
+The terminal command installs the NimbleBrain plugin for your agent (Claude Code if you have it,
+else Codex) and starts the agent on setup. The plugin carries the setup and the connections to the
+showcase and GlassEngine. Nothing needs sudo. Setup adds to your settings and never replaces what
+is there; run it again any time, and it says "already set up". It also leaves a NimbleBrain shortcut
+on your Desktop. `uninstall.sh` in the skill's scripts removes exactly what setup added.
+
+**Add your Anthropic key.** NimbleBrain's own chat needs one; setup through your agent does not.
+Setup offers to open a private Terminal window where you paste it, so your agent never sees it. On
+macOS it goes into your keychain. To do it later:
+`bash ~/nimblebrain/.agents/skills/nimblebrain-setup/scripts/set-key.sh`. Each chat turn costs
+money on your Anthropic account: [pricing](https://www.anthropic.com/pricing).
+
+To try a fork or branch before it merges, name it in both places:
 
 ```bash
-npx skills add NimbleBrainInc/nimblebrain --skill nimblebrain-setup
+curl -fsSL https://raw.githubusercontent.com/<owner>/nimblebrain/<branch>/install.sh | NB_REPO=<owner>/nimblebrain NB_REF=<branch> bash
 ```
 
-Or paste this line into the agent: "Set up NimbleBrain locally by following .agents/skills/nimblebrain-setup/SKILL.md from github.com/NimbleBrainInc/nimblebrain".
-
-The agent shows its plan and waits for your OK. Then it checks prerequisites, asks you a few questions, installs NimbleBrain and checks that it runs. It starts two example apps on 127.0.0.1 and connects your agent to both. The showcase is a guided setup tour. GlassEngine gives your agent its own chat tab inside NimbleBrain. From there your agent finishes setup inside NimbleBrain while you watch.
-
-All state stays inside the checkout. You paste your model provider key into `.env` yourself; the agent never sees it. Tested on macOS with Claude Code. Codex is experimental.
-
-Or install the plugin for your agent. It carries the same skill, connects your agent to the showcase and GlassEngine, and adds a join command. Run one line (Codex is experimental):
-
-```bash
-claude plugin marketplace add NimbleBrainInc/nimblebrain && claude plugin install nimblebrain@nimblebrain
-codex plugin marketplace add NimbleBrainInc/nimblebrain && codex plugin add nimblebrain@nimblebrain
-```
-
-Until the upstream merge, use the fork and branch named in the pull request (add `#<branch>` for Claude Code, `--ref <branch>` for Codex).
+Tested on macOS with Claude Code and Codex.
 
 For API-only development (no web client):
 
