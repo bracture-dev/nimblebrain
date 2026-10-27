@@ -15,11 +15,40 @@ interface Snapshot {
   transcript: Entry[];
 }
 
-const SWITCHES: [PolicyKey, string][] = [
-  ["agentsMaySend", "NimbleBrain's agents may post here"],
-  ["agentsMayRead", "NimbleBrain's agents may read this chat"],
-  ["joinedMayChangePolicy", "The joined agent may change these switches"],
+/**
+ * Everything on this screen is written for the person; the precise mechanics
+ * (tool names, switch keys, sessions, leases) live in the tool descriptions,
+ * tool results and the model context below, where agents read them.
+ */
+const SWITCHES: [PolicyKey, (tab: TabView) => string][] = [
+  ["agentsMaySend", () => "NimbleBrain's agent can send messages here"],
+  ["agentsMayRead", () => "NimbleBrain's agent can read this chat"],
+  ["joinedMayChangePolicy", (tab) => `${tab.name} can change these settings`],
 ];
+
+/** Status words a person reads, keyed by what the server reports. */
+const STATUS: Record<string, string> = {
+  live: "Connected",
+  away: "Away",
+  "not joined": "Not connected",
+  idle: "Ready",
+  busy: "Answering…",
+  unavailable: "Can't start",
+};
+
+/** What the agent says it is doing, in a person's words. */
+const STATE: Record<string, string> = {
+  working: "Working",
+  waiting: "Waiting for you",
+  done: "Done",
+  blocked: "Needs help",
+};
+
+const ENGINE_KINDS: Record<string, string> = {
+  echo: "Repeats each message back. Good for trying the screen out.",
+  command: "Runs a program on this computer for each message you send.",
+  http: "Sends each message to a service running on this computer.",
+};
 
 const POLL_MS = 2000;
 const root = document.getElementById("app") as HTMLElement;
@@ -27,7 +56,12 @@ let app: App;
 let snap: Snapshot = { tabs: [], transcript: [] };
 let selected: string | undefined;
 let sending = false;
+/** What went wrong, for the person; the technical message sits in a tooltip. */
 let lastError = "";
+let lastErrorDetail = "";
+
+/** A tool said no: its message is already written for the person. */
+class Refusal extends Error {}
 /** The send box's text, kept across re-renders. */
 let draft = "";
 let shown = "";
@@ -46,7 +80,7 @@ async function call(name: string, args: Record<string, unknown> = {}): Promise<u
   const r = await app.callTool(name, args);
   if (r.isError) {
     const text = (r.content as { text?: string }[] | undefined)?.map((c) => c.text ?? "").join(" ");
-    throw new Error(text || `${name} failed`);
+    throw new Refusal(text || "That didn't work. Please try again.");
   }
   return r.data;
 }
@@ -60,7 +94,7 @@ async function refresh(): Promise<void> {
     snap = data as Snapshot;
     lastError = "";
   } catch (err) {
-    lastError = err instanceof Error ? err.message : String(err);
+    noteError(err);
   }
   if (!selected || !snap.tabs.some((t) => t.id === selected)) selected = snap.tabs[0]?.id;
   const key = JSON.stringify([snap, lastError]);
@@ -76,8 +110,18 @@ function tellAgent(): void {
   if (!tab) return;
   const recent = snap.transcript.filter((e) => e.tab === tab.id).slice(-5);
   app.updateModelContext(
-    { tab: tab.id, status: tab.status, paused: tab.paused, policy: tab.policy, recent },
-    `The person is viewing the "${tab.name}" tab (${tab.status}) in GlassEngine.`,
+    {
+      tab: tab.id,
+      status: tab.status,
+      paused: tab.paused,
+      pending: tab.pending,
+      session: tab.session,
+      refusedJoinAt: tab.refusedJoinAt,
+      policy: tab.policy,
+      recent,
+    },
+    `The person is viewing the "${tab.name}" tab in GlassEngine (status ${tab.status}${tab.paused ? ", paused" : ""}). ` +
+      "Post into it with glassengine send_message; read it with read_transcript.",
   );
 }
 
@@ -86,9 +130,20 @@ async function act(fn: () => Promise<unknown>): Promise<void> {
     await fn();
     lastError = "";
   } catch (err) {
-    lastError = err instanceof Error ? err.message : String(err);
+    noteError(err);
   }
   await refresh();
+}
+
+function noteError(err: unknown): void {
+  const message = err instanceof Error ? err.message : String(err);
+  lastError =
+    err instanceof Refusal ? message : "Can't reach GlassEngine right now. Is it still running?";
+  lastErrorDetail = message;
+}
+
+function errorLine(): HTMLElement | string {
+  return lastError ? el("p", { className: "error", title: lastErrorDetail }, lastError) : "";
 }
 
 function render(): void {
@@ -122,11 +177,7 @@ function render(): void {
     : el(
         "section",
         { className: "glass" },
-        el(
-          "p",
-          { className: lastError ? "error" : "muted" },
-          lastError ? `Could not read GlassEngine: ${lastError}` : "Loading…",
-        ),
+        lastError ? errorLine() : el("p", { className: "muted" }, "Loading…"),
       );
   root.replaceChildren(nav, body);
   const feed = root.querySelector("ol.feed");
@@ -165,7 +216,7 @@ function renderTab(tab: TabView): HTMLElement {
     ),
     renderSendBox(tab),
     renderSwitches(tab),
-    lastError ? el("p", { className: "error" }, lastError) : "",
+    errorLine(),
   );
 }
 
@@ -187,7 +238,17 @@ function renderFeed(tab: TabView): HTMLElement {
   );
   if (rows.length === 0) {
     list.append(
-      el("li", { className: "glass" }, el("div", { className: "text" }, "No messages yet.")),
+      el(
+        "li",
+        { className: "glass" },
+        el(
+          "div",
+          { className: "text" },
+          tab.kind === "session" && !tab.session
+            ? `No messages yet. Anything you write waits until ${tab.name} connects.`
+            : "No messages yet. Write the first one below.",
+        ),
+      ),
     );
   }
   return list;
@@ -195,7 +256,13 @@ function renderFeed(tab: TabView): HTMLElement {
 
 function lineText(e: Entry): string {
   if (e.kind !== "status") return e.text;
-  return e.text !== e.state ? `${e.state}: ${e.text}` : (e.state ?? "");
+  const state = STATE[e.state ?? ""] ?? e.state ?? "";
+  return e.text !== e.state ? `${state}: ${e.text}` : state;
+}
+
+function statusWord(tab: TabView): string {
+  const word = STATUS[tab.status] ?? tab.status;
+  return tab.paused ? `${word} · Paused` : word;
 }
 
 function renderHead(tab: TabView): HTMLElement {
@@ -203,14 +270,10 @@ function renderHead(tab: TabView): HTMLElement {
     "div",
     { className: "head" },
     el("h2", {}, tab.name),
-    el(
-      "span",
-      { className: `pill ${dotOf(tab)}` },
-      tab.paused ? `${tab.status}, paused` : tab.status,
-    ),
-    tab.state ? el("span", { className: "pill" }, tab.state) : "",
-    tab.kind !== "session" ? el("span", { className: "pill" }, tab.kind) : "",
-    tab.problem ? el("span", { className: "error" }, tab.problem) : "",
+    el("span", { className: `pill ${dotOf(tab)}`, title: tab.problem ?? "" }, statusWord(tab)),
+    tab.state && tab.status === "live"
+      ? el("span", { className: "pill" }, STATE[tab.state] ?? tab.state)
+      : "",
   );
 }
 
@@ -220,13 +283,14 @@ function renderInfo(tab: TabView): HTMLElement {
   const s = tab.session;
   let text: string;
   if (tab.kind !== "session") {
-    text = tab.description ?? "An engine from the config file: each message runs it once.";
+    text = tab.description ?? ENGINE_KINDS[tab.kind] ?? "";
+    if (tab.problem) text += " It can't start right now; check its entry in the config file.";
   } else if (s) {
-    const seen = s.waiting ? "waiting for a message" : `last seen ${time(s.lastSeenAt)}`;
-    text = `${s.client ? `${s.client} · ` : ""}joined ${time(s.joinedAt)} · ${seen}`;
+    const now = s.waiting ? "listening for your messages" : `last heard from ${time(s.lastSeenAt)}`;
+    text = `Connected since ${time(s.joinedAt)}${s.client ? ` (${s.client})` : ""} · ${now}`;
   } else {
     const agent = AGENT_NAMES[tab.id] ?? "your agent";
-    text = `No session. In ${agent}, say: “join GlassEngine as ${tab.id} and keep answering”.`;
+    text = `Not connected yet. In ${agent}, say “join GlassEngine as ${tab.id} and keep answering”.`;
   }
   return el("p", { className: "muted" }, text);
 }
@@ -242,7 +306,7 @@ function renderControls(tab: TabView): HTMLElement {
   if (tab.refusedJoinAt) {
     box.append(button("Hand over", on("hand_over"), "primary"));
   }
-  box.append(button("Release", on("release_tab")));
+  box.append(button("Disconnect", on("release_tab")));
   if (!tab.refusedJoinAt) return box;
   return el(
     "div",
@@ -251,7 +315,7 @@ function renderControls(tab: TabView): HTMLElement {
     el(
       "p",
       { className: "notice" },
-      `Another ${tab.name} session asked to join at ${time(tab.refusedJoinAt)}. Hand over ends the current session so it can.`,
+      `Another ${tab.name} session asked to connect at ${time(tab.refusedJoinAt)}. Only one can be connected at a time. Press Hand over to let the new one in.`,
     ),
   );
 }
@@ -263,15 +327,15 @@ function renderSwitches(tab: TabView): HTMLElement {
   return el(
     "fieldset",
     {},
-    el("legend", {}, "Switches"),
-    ...keys.map(([key, text]) => {
+    el("legend", {}, "What's allowed"),
+    ...keys.map(([key, label]) => {
       const on = tab.policy[key];
       const box = el("input", {
         type: "checkbox",
         checked: on,
         onchange: () => void act(() => call("set_policy", { tab: tab.id, key, value: !on })),
       });
-      return el("label", { className: "switch" }, box, text);
+      return el("label", { className: "switch" }, box, label(tab));
     }),
   );
 }
@@ -313,13 +377,9 @@ function who(e: Entry, tab: TabView): string {
     case "person":
       return "You";
     case "nimblebrain":
-      return "NimbleBrain";
+      return "NimbleBrain's agent";
     case "engine":
-      return e.kind === "status"
-        ? `${tab.name} status`
-        : e.kind === "error"
-          ? `${tab.name} failed`
-          : tab.name;
+      return e.kind === "error" ? `${tab.name} (something went wrong)` : tab.name;
     case "glass":
       return "GlassEngine";
   }
@@ -337,7 +397,13 @@ async function main(): Promise<void> {
 /** An error the screen cannot recover from is shown, never left as a blank frame. */
 function fail(err: unknown): void {
   const message = err instanceof Error ? err.message : String(err);
-  root.replaceChildren(el("p", { className: "error" }, `GlassEngine stopped: ${message}`));
+  root.replaceChildren(
+    el(
+      "p",
+      { className: "error", title: message },
+      "Something went wrong on this screen. Reload to try again.",
+    ),
+  );
 }
 window.addEventListener("error", (ev) => fail(ev.error ?? ev.message));
 window.addEventListener("unhandledrejection", (ev) => fail(ev.reason));

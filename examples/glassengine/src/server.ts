@@ -43,7 +43,8 @@ function forApp<T>(r: Result<T>, wrap: (v: T) => Record<string, unknown>): ToolR
 const lines = (rows: Entry[]) =>
   rows
     .map(
-      (e) => `${e.at} [${e.tab}] ${e.from} ${e.kind}${e.state ? ` (${e.state})` : ""}: ${e.text}`,
+      (e) =>
+        `${e.at} [${e.tab}] ${e.from} ${e.kind}${e.state ? ` (${e.state})` : ""}: ${e.text}${e.detail ? ` [${e.detail}]` : ""}`,
     )
     .join("\n") || "No messages.";
 
@@ -164,7 +165,8 @@ export function buildAgentServer(glass: Glass): McpServer {
     "read_transcript",
     {
       title: "Read your tab's chat",
-      description: "Read your own tab's chat, oldest first.",
+      description:
+        "Read your own tab's chat, oldest first. Each line is what the person sees; lines from GlassEngine add the mechanics in [brackets], with `detail` in the structured result.",
       inputSchema: z.object({
         session,
         limit: z.number().int().min(1).max(200).default(30),
@@ -267,7 +269,8 @@ export function buildHostServer(glass: Glass, uiHtml: () => Promise<string>): Mc
     "read_transcript",
     {
       title: "Read a tab's chat",
-      description: "Read a tab's chat, oldest first. Omit tab for every tab agents may read.",
+      description:
+        "Read a tab's chat, oldest first. Omit tab for every tab agents may read. Each line is what the person sees; lines from GlassEngine add the mechanics (tool, switch, lease) in [brackets], with `detail` in the structured result.",
       inputSchema: z.object({
         tab: tabId.optional(),
         limit: z.number().int().min(1).max(200).default(30),

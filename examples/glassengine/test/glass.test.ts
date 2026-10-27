@@ -186,3 +186,29 @@ describe("configured engines", () => {
     expect(glass.join("echo").ok).toBe(false);
   });
 });
+
+describe("words for people, detail for agents", () => {
+  test("GlassEngine's own lines read plainly and carry the mechanics in detail", async () => {
+    const glass = glassWith();
+    value(glass.join("claude"));
+    glass.join("claude");
+    value(glass.pause("claude"));
+    value(glass.setPolicy("claude", "agentsMaySend", false));
+    await glass.send("claude", "x", "nimblebrain");
+    value(glass.handOver("claude"));
+    const lines = glass.snapshot(50).transcript.filter((e) => e.from === "glass");
+    expect(lines.map((e) => e.text)).toEqual([
+      "Claude connected.",
+      "Another Claude session tried to connect. Only one can be connected at a time.",
+      "Paused. New messages will wait until the tab is resumed.",
+      "NimbleBrain's agent can no longer send messages here.",
+      "NimbleBrain's agent tried to send a message here, but that is turned off.",
+      "You handed this tab over. The next Claude session to connect takes it.",
+    ]);
+    for (const e of lines) {
+      expect(e.text).not.toMatch(/_|session id|lease|agentsMay|joinedMay/);
+      expect(e.detail).toBeTruthy();
+    }
+    expect(lines[3]?.detail).toBe("set_policy agentsMaySend=false by the person");
+  });
+});

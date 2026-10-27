@@ -18,6 +18,12 @@ export interface Entry {
   text: string;
   /** For a status line: the state the engine says it is in. */
   state?: string;
+  /**
+   * For agents only: the precise mechanics behind a line (which tool, which
+   * switch, why). The screen shows `text`, written for a person; tools that
+   * read the transcript return both.
+   */
+  detail?: string;
 }
 
 /** How many lines are kept in memory and read back at start. */

@@ -1,6 +1,6 @@
 import { adapterProblem, runTurn } from "./adapters.ts";
 import { type EngineConfig, type GlassConfig, PLATFORMS, type Platform } from "./config.ts";
-import { defaultPolicy, isPolicyKey, mergePolicy, type Policy } from "./policy.ts";
+import { defaultPolicy, isPolicyKey, mergePolicy, type Policy, type PolicyKey } from "./policy.ts";
 import type { Entry, Store } from "./store.ts";
 
 /**
@@ -151,7 +151,9 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
     onChange();
     return e;
   };
-  const event = (tab: string, text: string) => record({ tab, from: "glass", kind: "event", text });
+  /** A line on the tab: `text` for the person on screen, `detail` for agents reading the transcript. */
+  const event = (tab: string, text: string, detail: string) =>
+    record({ tab, from: "glass", kind: "event", text, detail });
 
   const wake = (t: Tab) => {
     for (const w of [...t.waiters]) w();
@@ -263,7 +265,7 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
     if (t.turn) {
       return {
         ok: false,
-        reason: `${t.name} is busy with turn ${t.turn}; try again when it finishes`,
+        reason: `${t.name} is still answering the last message. Try again when it finishes (turn ${t.turn}).`,
       };
     }
     const problem = adapterProblem(e.adapter);
@@ -286,7 +288,12 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
     if (!isPolicyKey(key)) return { ok: false, reason: `"${key}" is not a switch` };
     const all = store.policies();
     store.savePolicies({ ...all, [t.id]: { ...all[t.id], [key]: value } });
-    event(t.id, `${key} switched ${value ? "on" : "off"} by ${by}.`);
+    const said = SAID[key](t.name, value);
+    event(
+      t.id,
+      by === "the person" ? said : `${t.name} changed a setting: ${said}`,
+      `set_policy ${key}=${value} by ${by}`,
+    );
     return { ok: true, value: view(t) };
   };
 
@@ -303,7 +310,11 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
       const t = tabs.get(platform) as Tab;
       if (live(t.session)) {
         t.refusedAt = now();
-        event(t.id, `A second ${t.name} session asked to join and was refused.`);
+        event(
+          t.id,
+          `Another ${t.name} session tried to connect. Only one can be connected at a time.`,
+          "join refused: a live session holds this tab; it frees after the person's hand_over or when that session's lease lapses",
+        );
         return {
           ok: false,
           reason:
@@ -316,7 +327,11 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
       const id = Buffer.from(crypto.getRandomValues(new Uint8Array(12))).toString("hex");
       t.session = { id, joinedAt: now(), lastSeen: now(), waiting: 0, client };
       t.refusedAt = undefined;
-      event(t.id, `${t.name} joined${client ? ` (${client})` : ""}.`);
+      event(
+        t.id,
+        `${t.name} connected${client ? ` (${client})` : ""}.`,
+        `join: new session, lease ${config.leaseSeconds}s renewed by each wait_for_message`,
+      );
       return {
         ok: true,
         value: {
@@ -376,7 +391,7 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
       if (!found.ok) return found;
       const t = found.value.tab;
       end(t, "it released the tab");
-      event(t.id, `${t.name} left the tab.`);
+      event(t.id, `${t.name} disconnected.`, "the joined session called release");
       return { ok: true, value: view(t) };
     },
 
@@ -393,8 +408,12 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
       if (!found.ok) return found;
       const t = found.value;
       if (by === "nimblebrain" && !policyOf(t).agentsMaySend) {
-        const reason = `agents may not post in the ${t.name} tab; the person can switch that on in GlassEngine`;
-        event(t.id, `A message from an agent was refused: ${reason}.`);
+        const reason = `agents may not post in the ${t.name} tab (agentsMaySend is off); the person can switch it on in GlassEngine`;
+        event(
+          t.id,
+          "NimbleBrain's agent tried to send a message here, but that is turned off.",
+          `send_message refused: ${reason}`,
+        );
         return { ok: false, reason };
       }
       return t.engine ? toEngine(t, t.engine, text, by, waitSeconds) : toSession(t, text, by);
@@ -428,7 +447,11 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
       const t = found.value;
       if (!t.paused) {
         t.paused = true;
-        event(t.id, "Paused: messages are held until the tab is resumed.");
+        event(
+          t.id,
+          "Paused. New messages will wait until the tab is resumed.",
+          "pause: wait_for_message returns no messages until resume",
+        );
       }
       return { ok: true, value: view(t) };
     },
@@ -439,7 +462,7 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
       const t = found.value;
       if (t.paused) {
         t.paused = false;
-        event(t.id, "Resumed.");
+        event(t.id, "Resumed.", "resume: held messages go out on the next wait_for_message");
         wake(t);
       }
       return { ok: true, value: view(t) };
@@ -449,9 +472,9 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
       const found = find(id);
       if (!found.ok) return found;
       const t = found.value;
-      if (!t.session) return { ok: false, reason: `no session is joined to the ${t.name} tab` };
+      if (!t.session) return { ok: false, reason: `${t.name} is not connected.` };
       end(t, "the person released the tab");
-      event(t.id, `The person released the ${t.name} session.`);
+      event(t.id, `You disconnected ${t.name}.`, "release_tab by the person ended the session");
       return { ok: true, value: view(t) };
     },
 
@@ -459,12 +482,13 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
       const found = find(id);
       if (!found.ok) return found;
       const t = found.value;
-      if (!t.session) return { ok: false, reason: `no session is joined to the ${t.name} tab` };
+      if (!t.session) return { ok: false, reason: `${t.name} is not connected.` };
       end(t, "the person handed the tab over to another session");
       t.refusedAt = undefined;
       event(
         t.id,
-        `The person handed the ${t.name} tab over; the next ${t.name} session to join takes it.`,
+        `You handed this tab over. The next ${t.name} session to connect takes it.`,
+        "hand_over by the person ended the session; the next join succeeds",
       );
       return { ok: true, value: view(t) };
     },
@@ -488,6 +512,15 @@ export function createGlass(config: GlassConfig, store: Store, opts: GlassOption
     },
   };
 }
+
+/** What each switch change says on screen, in a person's words. */
+const SAID: Record<PolicyKey, (name: string, on: boolean) => string> = {
+  agentsMaySend: (_, on) =>
+    `NimbleBrain's agent can ${on ? "now" : "no longer"} send messages here.`,
+  agentsMayRead: (_, on) => `NimbleBrain's agent can ${on ? "now" : "no longer"} read this chat.`,
+  joinedMayChangePolicy: (name, on) =>
+    `${name} can ${on ? "now" : "no longer"} change these settings.`,
+};
 
 /** Resolve when the tab wakes its waiters, the time is up, or the request is aborted. */
 function woken(t: Tab, ms: number, signal?: AbortSignal): Promise<void> {
