@@ -250,3 +250,13 @@ th button {
 .step > input {
   grid-column: 2 / 4;
 }
+.dev {
+  margin-top: 8px;
+  color: var(--color-text-secondary, #6b6b70);
+}
+.dev > summary {
+  cursor: pointer;
+}
+.step > details {
+  grid-column: 2 / 4;
+}

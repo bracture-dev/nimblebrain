@@ -18,7 +18,7 @@ The showcase is a teaching app. Its board holds invented sample cards, so changi
 ## Guided setup
 
 When the person asks to set up NimbleBrain, or has just installed it, run the setup checklist. The
-screen shows each step as you go, so say what you are about to do before each call.
+screen shows the person only a friendly label and one line for each step; the `instruction` and `via` fields in the checklist are for you alone. Say aloud what you are about to ask or do before each call.
 
 - `get_setup_checklist` returns every step with its status, the NimbleBrain call that makes the
   change (`via`) and the panel it shows. Call it first, and again whenever you lose track.

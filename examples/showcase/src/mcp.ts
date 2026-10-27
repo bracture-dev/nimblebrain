@@ -197,7 +197,7 @@ export function createShowcaseServer(state: ShowcaseState): McpServer {
     {
       title: "Start a setup step",
       description:
-        "Mark a step in progress and show its panel on screen. Only one step is in progress at a time. This does not change any NimbleBrain setting; make the change with the step's via call.",
+        "Mark a step in progress and show its panel on screen. Only one step is in progress at a time. This does not change any NimbleBrain setting. The result's current step carries `instruction` (what to ask the person and how to confirm) and `via` (the NimbleBrain call that makes the change); the screen shows the person only a friendly label, so say aloud what you are doing. After the change, call complete_setup_step.",
       inputSchema: z.object({ step: stepId }),
       annotations: { ...WRITES, idempotentHint: true },
     },
