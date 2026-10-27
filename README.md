@@ -45,6 +45,14 @@ bun run dev
 
 One command, one terminal. Output is prefixed `[api]` / `[web]`. Ctrl+C stops both. The dev launchers write `{"auth":{"adapter":"dev"}}` to the workdir's `instance.json` when it has none.
 
+To have a coding agent (Claude Code, Codex or another agent that reads Agent Skills) do the local setup with you, give it the setup skill. Either install it:
+
+```bash
+npx skills add NimbleBrainInc/nimblebrain --skill nimblebrain-setup
+```
+
+or paste this one line into the agent: "Set up NimbleBrain locally by following .agents/skills/nimblebrain-setup/SKILL.md from github.com/NimbleBrainInc/nimblebrain". It checks prerequisites, asks a few choices, installs and verifies, keeps all state inside the checkout, connects the agent to the workspace MCP endpoint, and you add your provider key to `.env` yourself.
+
 For API-only development (no web client):
 
 ```bash
