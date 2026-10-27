@@ -32,29 +32,19 @@ if [ -z "${ws:-}" ]; then bad "no workspace in /v1/bootstrap"; exit 1; fi
 ok "workspace $ws"
 
 url="http://localhost:$api/mcp/$ws"
-meta='"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"nimblebrain-setup","version":"1.0"},"io.modelcontextprotocol/clientCapabilities":{}}'
-mcp() {
-  local method=$1 name=$2 params=$3
-  curl -fsS -X POST "$base/mcp/$ws" \
-    -H 'Content-Type: application/json' \
-    -H 'Accept: application/json, text/event-stream' \
-    -H 'MCP-Protocol-Version: 2026-07-28' \
-    -H "Mcp-Method: $method" \
-    ${name:+-H "Mcp-Name: $name"} \
-    -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"$method\",\"params\":{$params$meta}}" 2>/dev/null
-}
+here=$(dirname "$0")
+names=$(bash "$here/nb-tool.sh" --api "$api" --list 2>/dev/null) || names=""
+count=$(printf '%s\n' "$names" | grep -c . || true)
+if [ "$count" -gt 0 ]; then
+  ok "MCP tools/list: $count tools"
+  # One line per connector prefix, so the showcase and GlassEngine show up once connected.
+  printf '%s\n' "$names" | sed -n 's/^\([a-z0-9-]*\)__.*/\1/p' | sort | uniq -c |
+    while read -r n prefix; do printf '        %s__: %s tools\n' "$prefix" "$n"; done
+else
+  bad "MCP tools/list returned no tools"
+fi
 
-count=$(mcp tools/list "" "" | bun -e '
-  const j = await Bun.stdin.json().catch(() => ({}));
-  console.log(j.result?.tools?.length ?? 0);
-')
-if [ "${count:-0}" -gt 0 ]; then ok "MCP tools/list: $count tools"; else bad "MCP tools/list returned no tools"; fi
-
-status=$(mcp tools/call nb__status '"name":"nb__status","arguments":{},' | bun -e '
-  const j = await Bun.stdin.json().catch(() => ({}));
-  const t = j.result?.content?.[0]?.text;
-  console.log(j.result && !j.result.isError && t ? t.replace(/\n/g, " | ") : "");
-')
+status=$(bash "$here/nb-tool.sh" --api "$api" nb__status 2>/dev/null | tr '\n' '|' | sed 's/|/ | /g; s/ | $//') || status=""
 if [ -n "$status" ]; then ok "MCP tools/call nb__status: $status"; else bad "MCP tools/call nb__status"; fi
 
 if [ -n "${shown:-}" ] && [ "$shown" != "$url" ]; then

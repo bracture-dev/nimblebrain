@@ -2,7 +2,9 @@
 # Install, start, stop or check the two bundled example apps (showcase and GlassEngine).
 # An example with its own bun.lock gets a frozen install with scripts off; one without (GlassEngine)
 # uses the checkout's root node_modules and starts without an install.
-# Both listen on 127.0.0.1 only. State and logs: <checkout>/.nimblebrain-worktree/examples/.
+# Both listen on 127.0.0.1 only. Logs and pids: <checkout>/.nimblebrain-worktree/examples/.
+# GlassEngine keeps its transcript and token in <checkout>/examples/glassengine/.glassengine/.
+# An example this checkout already runs is reused. A port held by anything else exits 3 ("ASK:").
 #
 # Usage: examples.sh start|stop|status <checkout> [--showcase-port <port>] [--glass-port <port>]
 #   defaults: showcase 27280, GlassEngine 27281
@@ -60,8 +62,12 @@ start_one() {
       echo "[examples] $name: already running on 127.0.0.1:$port"
       return 0
     fi
-    echo "[examples] $name: port $port is in use by something else; pass another port" >&2
-    return 1
+    if [ "$name" = glassengine ] && curl -fsS "http://127.0.0.1:$port/health" 2>/dev/null | grep -q '"glassengine"'; then
+      echo "ASK: a GlassEngine started from another folder answers on 127.0.0.1:$port. Its token differs from this checkout's. Stop it, or pass --glass-port with a free port." >&2
+    else
+      echo "ASK: port $port ($name) is in use by something else. Pass another port." >&2
+    fi
+    return 3
   fi
   if [ -f "$src/bun.lock" ]; then
     (cd "$src" && bun install --frozen-lockfile --ignore-scripts >"$state/$name.install.log" 2>&1)

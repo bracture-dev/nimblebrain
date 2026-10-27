@@ -2,6 +2,7 @@
 # Start NimbleBrain from a checkout in the background, with all state inside the checkout.
 # Reads NB_API_PORT and NB_WEB_PORT from <checkout>/.env (defaults 27271 and 27270).
 # Log: <checkout>/.nimblebrain-worktree/dev.log. Stop with stop.sh.
+# Reuses an instance this checkout already runs. A port held by anything else exits 3 ("ASK:").
 #
 # Usage: start.sh <checkout>
 
@@ -22,8 +23,9 @@ web=$(setting NB_WEB_PORT)
 api=${api:-27271}
 web=${web:-27270}
 
-if curl -fsS "http://127.0.0.1:$api/v1/health" >/dev/null 2>&1; then
-  echo "[start] already running: API http://localhost:$api, web http://localhost:$web"
+ours() { [ -s "$pidfile" ] && kill -0 "-$(cat "$pidfile")" 2>/dev/null; }
+if ours && curl -fsS "http://127.0.0.1:$api/v1/health" >/dev/null 2>&1; then
+  echo "[start] already running from this checkout: API http://localhost:$api, web http://localhost:$web"
   exit 0
 fi
 
@@ -32,10 +34,19 @@ port_busy() {
   (exec 3<>"/dev/tcp/::1/$1") 2>/dev/null && return 0
   return 1
 }
+# The next free API/web pair above the chosen one, skipping NimbleBrain's stock dev ports and the
+# examples' ports.
+next_pair() {
+  local w=$((web + 2))
+  while [ "$w" -lt $((web + 40)) ]; do
+    case "$w" in 27246 | 27280) ;; *) port_busy "$w" || port_busy $((w + 1)) || { echo "API $((w + 1)), web $w"; return; } ;; esac
+    w=$((w + 2))
+  done
+}
 for port in "$api" "$web"; do
   if port_busy "$port"; then
-    echo "[start] port $port is in use by something else; choose another in .env" >&2
-    exit 1
+    echo "ASK: port $port is in use by something not started from this checkout (another NimbleBrain or another program). Leave it alone and set NB_API_PORT and NB_WEB_PORT in .env to a free pair, for example $(next_pair)." >&2
+    exit 3
   fi
 done
 

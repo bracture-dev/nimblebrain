@@ -2,7 +2,7 @@
 # Check what a local NimbleBrain needs. Read-only: installs nothing, changes nothing.
 #
 # Usage: doctor.sh [--dir <checkout>] [--api <port>] [--web <port>]
-#   --dir  an existing checkout, to compare Bun with its packageManager pin
+#   --dir  an existing checkout, to compare Bun with its packageManager pin (install.sh also checks)
 #   --api  API port to check (default 27271)
 #   --web  web port to check (default 27270)
 # Exit status: 0 when every required item is present, 1 otherwise.
@@ -35,7 +35,7 @@ fi
 if command -v bun >/dev/null 2>&1; then
   have=$(bun --version)
   if [ -z "$pin" ]; then
-    ok "bun $have (compare with packageManager in package.json after cloning)"
+    ok "bun $have (install.sh compares it with the pin after cloning)"
   elif [ "$have" = "$pin" ]; then
     ok "bun $have (matches the pin)"
   elif [ "${have%.*}" = "${pin%.*}" ]; then

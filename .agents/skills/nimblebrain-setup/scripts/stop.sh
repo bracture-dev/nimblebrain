@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # Stop a NimbleBrain started by start.sh: the launcher, the API and the web server.
 #
-# Usage: stop.sh <checkout>
+# Usage: stop.sh <checkout> [--keep-examples]
+#   --keep-examples  leave the showcase and GlassEngine running (connect.sh restarts only NimbleBrain)
 
 set -euo pipefail
 
-dir=$(cd "${1:?usage: stop.sh <checkout>}" && pwd)
+dir=$(cd "${1:?usage: stop.sh <checkout> [--keep-examples]}" && pwd)
 pidfile="$dir/.nimblebrain-worktree/dev.pid"
 
 # Stop the bundled example apps first, if this setup started them.
-if [ -d "$dir/.nimblebrain-worktree/examples" ]; then
+if [ "${2:-}" != --keep-examples ] && [ -d "$dir/.nimblebrain-worktree/examples" ]; then
   bash "$(dirname "$0")/examples.sh" stop "$dir"
 fi
 
