@@ -67,4 +67,12 @@ if [ "$delete_key" = 1 ] && [ "$(uname)" = Darwin ]; then
   esac
 fi
 
+# What was removed is no longer ours to remove: a later uninstall must not undo the person's own
+# changes. The checkout, .env and connectors stay, so they stay on the list.
+STATE=$state bun -e '
+  const s = await Bun.file(process.env.STATE).json();
+  s.added = (s.added ?? []).filter((a) => /^(checkout|env-file|env|config|connector):/.test(a));
+  s.agents = {};
+  await Bun.write(process.env.STATE, `${JSON.stringify(s, null, 2)}\n`);
+'
 step "done. The checkout stays at $dir, with its .env and state. Delete the folder yourself to remove it."
