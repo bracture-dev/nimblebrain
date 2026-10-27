@@ -15,8 +15,11 @@ JSON-RPC error `-32022` (unsupported protocol version).
 ## Claude Code
 
 ```bash
-claude mcp add --transport http --scope user glassengine http://127.0.0.1:27281/mcp
 claude mcp add --transport http --scope user nimblebrain http://localhost:<API>/mcp/<WS>
+# Not needed with the Claude Code plugin, which carries these two:
+claude mcp add --transport http --scope user glassengine http://127.0.0.1:27281/mcp
+claude mcp add --transport http --scope user showcase http://127.0.0.1:27280/mcp \
+  --header "Authorization: Bearer local-showcase"
 claude mcp get nimblebrain        # expect: Status: Connected
 ```
 
@@ -29,22 +32,44 @@ claude mcp get nimblebrain        # expect: Status: Connected
 
 ## Codex CLI (experimental)
 
-Codex's support for revision `2026-07-28` sits behind the `mcp_2026_07_28` feature flag, which is
-marked under development. Without it the connection is refused.
+What works on which MCP version, checked with an `initialize` request:
+
+| Endpoint | Codex default | Needs `mcp_2026_07_28` |
+|---|---|---|
+| GlassEngine, `http://127.0.0.1:27281/mcp` | yes | no |
+| Showcase, `http://127.0.0.1:27280/mcp` (bearer `local-showcase`) | yes | no |
+| Workspace, `http://localhost:<API>/mcp/<WS>` | no, refused with `-32022` | yes |
+
+The Codex plugin (`codex plugin add nimblebrain@nimblebrain`) brings the first two. Without it,
+add them to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.glassengine]
+url = "http://127.0.0.1:27281/mcp"
+
+[mcp_servers.showcase]
+url = "http://127.0.0.1:27280/mcp"
+http_headers = { Authorization = "Bearer local-showcase" }
+```
+
+The workspace needs the `mcp_2026_07_28` feature, which Codex marks as under development. Ask
+first: it changes Codex's settings for every project on the machine.
 
 ```bash
-codex mcp add nimblebrain --url http://localhost:<API>/mcp/<WS>
 codex features enable mcp_2026_07_28
+codex mcp add nimblebrain --url http://localhost:<API>/mcp/<WS>
 codex mcp list                    # nimblebrain: enabled
 ```
 
-- This writes `~/.codex/config.toml`: a `[mcp_servers.nimblebrain]` entry with the `url`, and
-  `mcp_2026_07_28 = true` under `[features]`. On a Codex without `codex features`, add those two
-  lines to the file by hand. Codex prints a warning about under-development features at start.
-- `codex mcp list` shows `Auth: Unsupported` for this server; that is expected, dev mode needs none.
-- A project's `.codex/config.toml` that sets `enabled = false` for the server wins over the global
+- `codex features enable` writes `mcp_2026_07_28 = true` under `[features]` in
+  `~/.codex/config.toml`; `codex features disable mcp_2026_07_28` removes that line again. Codex
+  prints a warning about under-development features at start while it is on.
+- `codex mcp list` shows `Auth: Unknown` for this server; that is expected, dev mode needs none.
+- A project's `.codex/config.toml` that sets `enabled = false` for a server wins over the global
   entry; check there if tools do not appear.
 - Start a new Codex session and ask it to call `nb__status` from the nimblebrain server.
+- Without the feature, Codex still drives the showcase and joins GlassEngine; NimbleBrain's own
+  tools (conversations, files, tasks) stay out of its reach.
 - Remove: `codex mcp remove nimblebrain`, and `codex features disable mcp_2026_07_28` if nothing
   else needs it.
 

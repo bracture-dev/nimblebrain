@@ -53,6 +53,15 @@ npx skills add NimbleBrainInc/nimblebrain --skill nimblebrain-setup
 
 or paste this one line into the agent: "Set up NimbleBrain locally by following .agents/skills/nimblebrain-setup/SKILL.md from github.com/NimbleBrainInc/nimblebrain". It shows its plan first, checks prerequisites, asks a few choices, installs and verifies, keeps all state inside the checkout, starts the showcase and GlassEngine examples on 127.0.0.1, writes your agent's MCP configuration, and then your own agent finishes setup through the showcase while you watch. You paste your provider key into `.env` yourself. Tested on macOS with Claude Code; Codex is experimental.
 
+Or install it as a plugin, which also connects the agent to the showcase and GlassEngine and adds a join command (Codex is experimental):
+
+```bash
+claude plugin marketplace add NimbleBrainInc/nimblebrain && claude plugin install nimblebrain@nimblebrain
+codex plugin marketplace add NimbleBrainInc/nimblebrain && codex plugin add nimblebrain@nimblebrain
+```
+
+Until the upstream merge, use the fork and branch named in the pull request (add `#<branch>` for Claude Code, `--ref <branch>` for Codex).
+
 For API-only development (no web client):
 
 ```bash

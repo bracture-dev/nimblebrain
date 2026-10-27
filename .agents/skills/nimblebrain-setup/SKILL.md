@@ -14,6 +14,28 @@ runs from the terminal. Everything is local: every address below is `127.0.0.1` 
 
 Work in the open: say what you are about to run, run it, show what happened.
 
+## Install with a plugin
+
+The same skill also comes in a plugin for each agent, together with connections to the showcase
+and GlassEngine and a join command. Run one line in a terminal, then start a new session:
+
+```bash
+# Claude Code (tested on macOS)
+claude plugin marketplace add NimbleBrainInc/nimblebrain && claude plugin install nimblebrain@nimblebrain
+# Codex (experimental)
+codex plugin marketplace add NimbleBrainInc/nimblebrain && codex plugin add nimblebrain@nimblebrain
+```
+
+Until the upstream merge, use the fork and branch named in the pull request: the fork in place of
+`NimbleBrainInc/nimblebrain`, with `#<branch>` added to the Claude Code source and
+`--ref <branch>` to the Codex one.
+
+Each plugin connects the agent to `http://127.0.0.1:27280/mcp` (the showcase, with its local
+token `local-showcase`) and `http://127.0.0.1:27281/mcp` (GlassEngine). They answer once step 8
+has started the examples. Claude Code joins with `/nimblebrain:glass-join`; Codex with the
+`glass-join` skill. Remove: `claude plugin uninstall nimblebrain@nimblebrain` or
+`codex plugin remove nimblebrain@nimblebrain`.
+
 ## Ground rules
 
 - Show the plan and get an OK before you change anything. Offer every install on the machine
@@ -44,7 +66,7 @@ Show this, adjusted to what the person asked for, and wait for an OK:
 5. Start NimbleBrain and verify its API, web page and workspace MCP endpoint.
 6. Install and start the showcase (127.0.0.1:27280) and GlassEngine (127.0.0.1:27281), and add both
    to your workspace as connectors.
-7. Write your agent's MCP configuration for GlassEngine and the workspace.
+7. Write your agent's MCP configuration for GlassEngine, the showcase and the workspace.
 8. Hand over: open NimbleBrain next to your agent, say "join GlassEngine as claude and keep
    answering", and your agent runs the rest of setup through the showcase while you watch.
 
@@ -161,21 +183,42 @@ Run `verify.sh` again. It now lists `showcase__` and `glassengine__` tools.
 
 ## 10. Write the agent's MCP configuration
 
+The agent needs three connections: GlassEngine (`http://127.0.0.1:27281/mcp`), the showcase
+(`http://127.0.0.1:27280/mcp`, header `Authorization: Bearer local-showcase`) and the workspace
+(`http://localhost:<API>/mcp/<WS>`), which carries NimbleBrain's own tools and every connector.
+With the plugin installed, the first two are already there; add only the workspace. The
+workspace id differs on every install, which is why no plugin can carry that one.
+
 Claude Code (tested on macOS). Ask the person, then run:
 
 ```bash
-claude mcp add --transport http --scope user glassengine http://127.0.0.1:27281/mcp
 claude mcp add --transport http --scope user nimblebrain http://localhost:27271/mcp/$WS
-claude mcp get glassengine     # expect: Connected
-claude mcp get nimblebrain
+# Without the plugin, also:
+claude mcp add --transport http --scope user glassengine http://127.0.0.1:27281/mcp
+claude mcp add --transport http --scope user showcase http://127.0.0.1:27280/mcp \
+  --header "Authorization: Bearer local-showcase"
+claude mcp list                # expect: Connected for each
 ```
 
-If GlassEngine's README says its endpoint needs a token header, add it with `--header` as that
-README shows. User scope also feeds the Claude Code desktop app's Code tab. A running session does
-not pick up new servers; the person starts a new one.
+User scope also feeds the Claude Code desktop app's Code tab. A running session does not pick up
+new servers; the person starts a new one.
 
-Codex is experimental: see [references/connect-agents.md](references/connect-agents.md). Any other
-MCP client: the same file shows the raw HTTP shape. Linux, Windows and other agents are next steps.
+Codex (experimental). The showcase and GlassEngine work on Codex's default MCP version. The
+workspace speaks only MCP `2026-07-28`, which Codex supports behind a feature still marked under
+development. Offer it as one step, in these words: "This turns on a Codex feature still marked
+under development, for every project on this machine; `codex features disable mcp_2026_07_28`
+turns it off again." With a yes:
+
+```bash
+codex features enable mcp_2026_07_28
+codex mcp add nimblebrain --url http://localhost:27271/mcp/$WS
+codex mcp list
+```
+
+With a no, Codex still reaches the showcase and GlassEngine, and NimbleBrain's own tools stay out
+of its reach. Without the plugin, see [references/connect-agents.md](references/connect-agents.md)
+for those two entries. Any other MCP client: the same file shows the raw HTTP shape. Linux,
+Windows and other agents are next steps.
 
 ## 11. Hand over
 
@@ -184,7 +227,7 @@ Tell the person, in these words:
 1. Open NimbleBrain at `http://localhost:<WEB>` and go to the GlassEngine app.
 2. Open a new Claude Code session (or the desktop Code tab) beside it. Allow the GlassEngine tools
    once so the loop runs without prompts.
-3. Say: **join GlassEngine as claude and keep answering**.
+3. Say: **join GlassEngine as claude and keep answering** (or run `/nimblebrain:glass-join`).
 
 From there their own Claude drives. It opens the showcase tour, runs the rest of setup (name,
 preferences, connectors) with the showcase's tools, and every step shows on screen. You stop doing
