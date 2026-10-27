@@ -85,7 +85,7 @@ web on `27246`). `<workDir>` is `~/.nimblebrain` unless you set `NB_WORK_DIR`.
 5. **Start NimbleBrain again** with GlassEngine still running. The API log shows
    `✓ glassengine ready (10 tools, remote)`, and **GlassEngine** appears under **Apps**.
 
-NimbleBrain keeps the screen's own controls (send box, Release, Hand over, switches) out of every
+NimbleBrain keeps the screen's own controls (send box, Disconnect, Hand over, settings) out of every
 agent's tool list, so those stay yours. A coding agent added with the command below sees only the
 tools for joining a tab.
 
@@ -120,29 +120,34 @@ of GlassEngine" or to "read what Claude said in GlassEngine".
 
 | On screen | Tool | What it does |
 |---|---|---|
-| Status: `live`, `away`, `not joined` | `list_tabs`, `get_glass` | `live` while the session waits or has waited within the last two minutes; `away` once that lapses. |
+| Status: Connected, Away, Not connected | `list_tabs`, `get_glass` | The tools report `live`, `away` and `not joined`. Connected while the session waits or has waited within the last two minutes; Away once that lapses. A configured engine shows Ready, Answering… or Can't start (`idle`, `busy`, `unavailable`). |
 | Send box | `person_send` | Writes into the chat. Messages sent while nobody is joined wait for the next session. |
 | Pause / Resume | `pause`, `resume` | Pause holds messages; the agent's waits return "no message yet" until you resume. |
-| Release | `release_tab` | Ends the joined session. |
+| Disconnect | `release_tab` | Ends the joined session. |
 | Hand over | `hand_over` | Shown when a second session of the same platform asked to join. Ends the current session so the new one can join. |
-| Switches | `set_policy` | See below. |
+| What's allowed | `set_policy` | The settings below. |
 
 **One session per platform.** Only one Claude session can hold the Claude tab at a time, and the
 same for Codex and Other. Each wait renews the session's lease. A second session that tries to
 join is refused with a plain message until you press **Hand over**, or until about two minutes
-pass without a wait from the first one (the tab then shows `away`). Two sessions never answer one
+pass without a wait from the first one (the tab then shows Away). Two sessions never answer one
 chat.
 
-**Switches**, per tab:
+**What's allowed**, per tab:
 
-| Switch | Default | Meaning |
-|---|---|---|
-| NimbleBrain's agents may post here | on | Agents in the workspace may post into this chat with `send_message`. |
-| NimbleBrain's agents may read this chat | on | Agents may read it with `read_transcript`. You and the joined agent always can. |
-| The joined agent may change these switches | off | Lets the joined agent call `set_policy` for its own tab. |
+| On screen | Key | Default | Meaning |
+|---|---|---|---|
+| NimbleBrain's agent can send messages here | `agentsMaySend` | on (off for a configured engine) | Agents in the workspace may post into this chat with `send_message`. |
+| NimbleBrain's agent can read this chat | `agentsMayRead` | on | Agents may read it with `read_transcript`. You and the joined agent always can. |
+| Claude can change these settings | `joinedMayChangePolicy` | off | Lets the joined agent call `set_policy` for its own tab. |
+
+**Words for people, detail for agents.** Everything on the screen is written for you: no tool
+names, session ids or settings keys. Agents get the precise version. Tool descriptions and results
+name the tools and keys, and every GlassEngine line in the chat carries a `detail` field (shown in
+brackets by `read_transcript`) that says which tool or setting caused it.
 
 The joined agent controls only its own chat, its status and, if you allow it, its own tab's
-switches. It cannot add tabs or engines. GlassEngine shows what is said in the tab; tool calls the
+settings. It cannot add tabs or engines. GlassEngine shows what is said in the tab; tool calls the
 agent makes elsewhere (in your files, or in NimbleBrain through other connections) are not
 mirrored here.
 
@@ -225,7 +230,7 @@ yet tested end to end.
 ## Limits
 
 - **The agent's session must stay open.** The chat works while the joined session keeps calling
-  `wait_for_message`. Close the session, or let it finish its turn, and the tab shows `away` about
+  `wait_for_message`. Close the session, or let it finish its turn, and the tab shows Away about
   two minutes later; messages wait for the next session.
 - **Its context grows.** Every message and reply becomes part of the agent's conversation, so a
   long chat fills its context window; the agent's own compaction applies. Start a fresh session
