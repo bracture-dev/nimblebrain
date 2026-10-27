@@ -43,5 +43,5 @@ The showcase and GlassEngine examples use 27280 and 27281 by default.
 
 ## Coding agent sign-in
 
-Before step 8, check the agent itself works in a terminal: `claude` should open without a "Not
+Before connecting the agent (SKILL.md step 10), check the agent itself works in a terminal: `claude` should open without a "Not
 logged in" notice (run `/login` if it shows one), and `codex login status` should report a login.

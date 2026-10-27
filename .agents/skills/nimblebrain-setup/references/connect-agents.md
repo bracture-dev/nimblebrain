@@ -2,7 +2,9 @@
 
 Every workspace is an MCP server at `http://localhost:<API>/mcp/<WS>`. A client connected there
 gets the same tools NimbleBrain's own agent has in that workspace: conversations, files, tasks,
-skills, status, and every connector installed in it. In dev mode there is no sign-in step.
+skills, status, and every connector installed in it. The `dev` adapter signs every request in as
+one local developer, so there is no sign-in step; for a real identity provider, see the docs page
+on `instance.json`.
 
 `scripts/verify.sh` prints the URL. By hand: `curl -s http://localhost:<API>/v1/bootstrap` and take
 `workspaces[0].id`, or open the web page and go to workspace settings, MCP.
@@ -13,18 +15,19 @@ JSON-RPC error `-32022` (unsupported protocol version).
 ## Claude Code
 
 ```bash
-claude mcp add --transport http nimblebrain http://localhost:<API>/mcp/<WS>
+claude mcp add --transport http --scope user glassengine http://127.0.0.1:27281/mcp
+claude mcp add --transport http --scope user nimblebrain http://localhost:<API>/mcp/<WS>
 claude mcp get nimblebrain        # expect: Status: Connected
 ```
 
-- The default scope, `local`, applies to the folder you run it in. Add `--scope user` to have it in
-  every folder. `--scope project` writes `.mcp.json` into the current folder and asks for approval
+- `--scope user` puts the entry in every folder and in the desktop app's Code tab. The default
+  scope, `local`, applies only to the folder you run it in. `--scope project` writes `.mcp.json` into the current folder and asks for approval
   on next start; avoid it inside the NimbleBrain checkout, which should stay stock.
 - The running session does not pick up a new server. Start a new `claude` session, then try
   "list my NimbleBrain conversations" or "what is NimbleBrain's status?".
 - Remove: `claude mcp remove nimblebrain` (add `--scope user` if added there).
 
-## Codex CLI
+## Codex CLI (experimental)
 
 Codex's support for revision `2026-07-28` sits behind the `mcp_2026_07_28` feature flag, which is
 marked under development. Without it the connection is refused.
@@ -72,5 +75,5 @@ round: GlassEngine (`examples/glassengine/`) wraps it as a NimbleBrain connector
 ## Hosted chat apps
 
 claude.ai, ChatGPT and desktop chat apps add custom connectors from the vendor's servers, which
-cannot reach `localhost` on this machine. Use a local client. Do not publish the local instance to
-the internet to work around this; dev mode has no login.
+cannot reach `localhost` on this machine. Use a local client. Linux, Windows and other agents are
+next steps, not tested.

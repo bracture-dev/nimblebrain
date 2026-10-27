@@ -4,8 +4,9 @@ All commands assume `NB_DIR` is the checkout and `SCRIPTS=$NB_DIR/.agents/skills
 
 ## Stop
 
-- Started with `scripts/start.sh`: `bash "$SCRIPTS/stop.sh" "$NB_DIR"`. It stops the launcher, the
-  API and the web server together, and waits for both ports to close.
+- Started with `scripts/start.sh`: `bash "$SCRIPTS/stop.sh" "$NB_DIR"`. It stops the example apps, then the
+  launcher, the API and the web server together, waiting up to 15 s for them to exit before
+  SIGKILL.
 - Started in a terminal with `bun run dev:worktree`: Ctrl+C in that terminal.
 
 ## Restart
@@ -53,7 +54,8 @@ Confirm with the person first; this deletes their local conversations and files.
 2. Remove agent entries: `claude mcp remove nimblebrain` (with the `--scope` used),
    `codex mcp remove nimblebrain`, and `codex features disable mcp_2026_07_28` if nothing else
    uses it.
-3. Remove any example connector and stop any example server (see that example's README).
+3. Stop the examples (`examples.sh stop`) and remove their connector entries, and
+   `claude mcp remove glassengine --scope user`.
 4. Delete `NB_DIR`. It holds the code, `.env` and all state.
 5. If telemetry was left on, NimbleBrain also wrote `~/.nimblebrain/.telemetry-id`. Delete
    `~/.nimblebrain` only if no other NimbleBrain install on this machine uses it (plain

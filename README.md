@@ -51,7 +51,7 @@ To have a coding agent (Claude Code, Codex or another agent that reads Agent Ski
 npx skills add NimbleBrainInc/nimblebrain --skill nimblebrain-setup
 ```
 
-or paste this one line into the agent: "Set up NimbleBrain locally by following .agents/skills/nimblebrain-setup/SKILL.md from github.com/NimbleBrainInc/nimblebrain". It checks prerequisites, asks a few choices, installs and verifies, keeps all state inside the checkout, connects the agent to the workspace MCP endpoint, and you add your provider key to `.env` yourself.
+or paste this one line into the agent: "Set up NimbleBrain locally by following .agents/skills/nimblebrain-setup/SKILL.md from github.com/NimbleBrainInc/nimblebrain". It shows its plan first, checks prerequisites, asks a few choices, installs and verifies, keeps all state inside the checkout, starts the showcase and GlassEngine examples on 127.0.0.1, writes your agent's MCP configuration, and then your own agent finishes setup through the showcase while you watch. You paste your provider key into `.env` yourself. Tested on macOS with Claude Code; Codex is experimental.
 
 For API-only development (no web client):
 

@@ -25,4 +25,8 @@ docker compose up -d
 - State lives in the compose volume `workspace`, not in the folder.
 - Stop: `docker compose down`. Uninstall: `docker compose down -v` (deletes the volume and every
   conversation and file in it; confirm first), then delete the folder.
-- `instance.json` is gitignored; keep the dev adapter only on a machine you trust.
+- `instance.json` is gitignored. The `dev` adapter it names is the local-developer identity; for a
+  real identity provider, see the docs page on `instance.json`.
+- Telemetry stays on in this route: the compose file does not pass `NB_TELEMETRY_DISABLED` to the
+  container. To turn it off, add `NB_TELEMETRY_DISABLED=1` to the `environment` of `platform` in
+  `docker-compose.yml`, which changes a tracked file.

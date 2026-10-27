@@ -10,7 +10,7 @@ sandbox blocked the write. Ask the person to approve running the clone outside t
 retry once into an empty folder.
 
 **`Failed to build tasks UI (bun install)` on the first `bun run dev`.** The launcher's own unfrozen
-install was blocked or failed. Run `scripts/install.sh <NB_DIR>`, which installs from the lockfiles
+install was blocked or failed (for example by a sandbox or the network). Run `scripts/install.sh <NB_DIR>`, which installs from the lockfiles
 and builds the app UIs, then start again.
 
 **`[dev] API did not become ready` / `API failed to become ready within 30s`.** Usually a `PORT`
@@ -47,12 +47,12 @@ is read only at start. For a non-Anthropic provider, check the `providers` and `
 effect.** Restart. Touching a file does not reload configuration.
 
 **The page signs in as "Developer" and a hosted NimbleBrain login does not work.** Expected. The
-local copy uses the dev identity provider: one local admin, no login. Hosted accounts and data do
+local copy uses the dev identity provider: one local developer. Hosted accounts and data do
 not exist here. A real sign-in provider is configured in `instance.json`; see the docs page on
 `instance.json`.
 
 **`http://127.0.0.1:<WEB>` does not load but `http://localhost:<WEB>` does.** The web dev server
-listens on `localhost`. Use `localhost` for the web page; the API answers on both.
+listens on `localhost`. Use `http://localhost:<WEB>` for the web page.
 
 **The MCP URL in the web page shows port 27247 while the API runs on another port.** Set
 `NB_PUBLIC_ORIGIN=http://localhost:<API>` in `.env` and restart. The URL printed by

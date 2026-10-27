@@ -8,6 +8,11 @@ set -euo pipefail
 dir=$(cd "${1:?usage: stop.sh <checkout>}" && pwd)
 pidfile="$dir/.nimblebrain-worktree/dev.pid"
 
+# Stop the bundled example apps first, if this setup started them.
+if [ -d "$dir/.nimblebrain-worktree/examples" ]; then
+  bash "$(dirname "$0")/examples.sh" stop "$dir"
+fi
+
 if [ ! -f "$pidfile" ]; then
   echo "[stop] no $pidfile; if it runs in a terminal, press Ctrl+C there"
   exit 0
