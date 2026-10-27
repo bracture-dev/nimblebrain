@@ -63,13 +63,15 @@ port_busy() {
   return 1
 }
 
+running=0
+curl -fsS "http://127.0.0.1:$api/v1/health" >/dev/null 2>&1 && running=1
 for pair in "api:$api" "web:$web"; do
   name=${pair%%:*}
   port=${pair#*:}
   if ! port_busy "$port"; then
     ok "port $port free ($name)"
-  elif [ "$name" = "api" ] && curl -fsS "http://127.0.0.1:$port/v1/health" >/dev/null 2>&1; then
-    warn "port $port: a NimbleBrain API already answers here; reuse it or stop it first"
+  elif [ "$running" = 1 ]; then
+    warn "port $port ($name): a NimbleBrain already runs on these ports; reuse it or stop it first"
   else
     miss "port $port free ($name): something else is listening; pick another port"
   fi
