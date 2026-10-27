@@ -9,8 +9,9 @@
 # NB_REF    branch or tag (default main; ignored for a local checkout)
 # NB_NO_LAUNCH=1   install the plugin only; print the command that starts setup
 #
-# Changes only your agent's own settings: the plugin marketplace and plugin, and for Codex the
-# mcp_2026_07_28 feature. No sudo, nothing machine-wide.
+# Adds to your agent's own settings only: the plugin marketplace and plugin named nimblebrain. It
+# never removes or replaces anything. No sudo, nothing machine-wide. Safe to run again: a second run
+# updates the plugin. Exit status 3 means it found a conflict and changed nothing.
 
 set -eu
 
@@ -47,32 +48,44 @@ if [ "$repo" != NimbleBrainInc/nimblebrain ] || [ "$ref" != main ]; then
   source_note="$source_note."
 fi
 
+# Adds or updates only the marketplace and plugin named nimblebrain. A marketplace of that name from
+# another source is never replaced: the script stops and says so.
 if [ "$agent" = claude ]; then
   if [ -d "$repo" ]; then src=$repo; else src="$repo#$ref"; fi
-  step "Claude Code: removing any earlier NimbleBrain plugin source"
-  claude plugin marketplace remove nimblebrain >/dev/null 2>&1 || true
-  step "Claude Code: adding the plugin source $src"
-  claude plugin marketplace add "$src"
-  step "Claude Code: installing the nimblebrain plugin"
+  known=$(claude plugin marketplace list --json 2>/dev/null | tr -d ' \n' || true)
+  case "$known" in
+    *'"name":"nimblebrain"'*)
+      case "$known" in *"${repo}"*) ;; *)
+        echo "ASK: Claude Code already has a plugin marketplace named nimblebrain from another source; left as it is." >&2
+        echo "     To use $src instead: claude plugin marketplace remove nimblebrain, then run this again." >&2
+        exit 3 ;;
+      esac
+      step "Claude Code: updating the nimblebrain plugin source"
+      claude plugin marketplace update nimblebrain ;;
+    *)
+      step "Claude Code: adding the plugin source $src"
+      claude plugin marketplace add "$src" ;;
+  esac
+  step "Claude Code: installing or updating the nimblebrain plugin"
   claude plugin install nimblebrain@nimblebrain
+  claude plugin update nimblebrain@nimblebrain >/dev/null
   # The plugin's own local tools (GlassEngine and the showcase) run without a prompt each time.
   set -- claude "/nimblebrain:setup${source_note}" \
     --allowedTools "mcp__plugin_nimblebrain_glassengine__*" "mcp__plugin_nimblebrain_showcase__*"
 else
-  step "Codex: removing any earlier NimbleBrain plugin source"
-  codex plugin marketplace remove nimblebrain >/dev/null 2>&1 || true
-  if [ -d "$repo" ]; then
-    step "Codex: adding the plugin source $repo"
-    codex plugin marketplace add "$repo"
-  else
-    step "Codex: adding the plugin source $repo at $ref"
-    codex plugin marketplace add "$repo" --ref "$ref"
+  if [ -d "$repo" ]; then set -- "$repo"; else set -- "$repo" --ref "$ref"; fi
+  step "Codex: adding the plugin source $*"
+  # Codex refuses a second source under the same name, so a different one is never replaced.
+  if ! out=$(codex plugin marketplace add "$@" 2>&1); then
+    echo "$out" >&2
+    echo "ASK: Codex already has a plugin marketplace named nimblebrain from another source; left as it is." >&2
+    echo "     To use $* instead: codex plugin marketplace remove nimblebrain, then run this again." >&2
+    exit 3
   fi
-  step "Codex: installing the nimblebrain plugin"
+  echo "$out"
+  [ -d "$repo" ] || codex plugin marketplace upgrade nimblebrain >/dev/null 2>&1 || true
+  step "Codex: installing or updating the nimblebrain plugin"
   codex plugin add nimblebrain@nimblebrain
-  # NimbleBrain's workspace door speaks MCP 2026-07-28, which Codex has behind this feature.
-  step "Codex: turning on the mcp_2026_07_28 feature (codex features disable mcp_2026_07_28 undoes it)"
-  codex features enable mcp_2026_07_28
   set -- codex "Use the nimblebrain-setup skill to set up NimbleBrain on this machine, fast path.${source_note}"
 fi
 

@@ -52,6 +52,16 @@ done
 
 mkdir -p "$state"
 cd "$dir"
+# The key set-key.sh saved in the keychain goes into NimbleBrain's environment only, never printed.
+# A value already in the environment wins; NimbleBrain prefers the environment over .env.
+if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ "$(uname)" = Darwin ]; then
+  if key=$(security find-generic-password -s "${NB_KEYCHAIN_SERVICE:-nimblebrain}" -a ANTHROPIC_API_KEY \
+    -w ${NB_KEYCHAIN:+"$NB_KEYCHAIN"} 2>/dev/null) && [ -n "$key" ]; then
+    export ANTHROPIC_API_KEY="$key"
+    echo "[start] using the Anthropic key from the keychain"
+  fi
+  unset key
+fi
 # Own process group, so stop.sh can end the launcher, the API and the web server together.
 # PORT is cleared because it would override the API port.
 set -m

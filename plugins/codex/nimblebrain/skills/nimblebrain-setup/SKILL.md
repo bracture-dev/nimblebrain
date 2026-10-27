@@ -1,22 +1,20 @@
 ---
 name: nimblebrain-setup
-description: Install and run NimbleBrain locally from source, start its two example apps (the showcase and GlassEngine), connect Codex to them, and let Codex finish setup on screen through the showcase. Use when someone asks to set up, install, run, try or get started with NimbleBrain locally. Experimental on Codex.
+description: Set up NimbleBrain locally in one pass (fast path), with its showcase and GlassEngine apps running and connected and Codex joined to GlassEngine. Safe to run again on an existing install. Use when someone asks to set up, install, run, try or get started with NimbleBrain locally.
 ---
 
 # NimbleBrain local setup (Codex)
 
-The setup steps live in one place: the `nimblebrain-setup` skill in the NimbleBrain repository.
-Codex installs plugins without symbolic links, so this plugin points to that skill instead of
-carrying a second copy.
+The steps live once, in the `nimblebrain-setup` skill of the NimbleBrain repository. Codex installs
+plugins without symbolic links, so this plugin points to that skill instead of carrying a copy.
 
-1. Run `codex plugin marketplace list` and note the root of the `nimblebrain` marketplace. Codex
-   keeps a copy of the repository there.
-2. Read `<root>/.agents/skills/nimblebrain-setup/SKILL.md` and follow it. Its `references/` and
-   `scripts/` folders sit beside it. Until the clone exists, read `SCRIPTS` in that skill as
-   `<root>/.agents/skills/nimblebrain-setup/scripts`.
-3. If that file is missing, read the same path from
-   `https://github.com/NimbleBrainInc/nimblebrain` instead.
+1. Run `codex plugin marketplace list --json` and take `root` of the `nimblebrain` marketplace.
+   Call it `ROOT`.
+2. Read `ROOT/.agents/skills/nimblebrain-setup/SKILL.md` and follow its **Fast path** section, with
+   `--agent codex`. Its scripts are in `ROOT/.agents/skills/nimblebrain-setup/scripts`.
+3. If that file is missing, read
+   `https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/.agents/skills/nimblebrain-setup/SKILL.md`.
 
-This plugin already connects Codex to the showcase (`http://127.0.0.1:27280/mcp`) and GlassEngine
-(`http://127.0.0.1:27281/mcp`). In the Codex part of the skill's step 10, add only the workspace
-connection.
+This plugin gives Codex the showcase and GlassEngine tools. When this session started before the
+plugin was installed, they load in the next session: say so, and tell the person to run
+`codex resume --last`.

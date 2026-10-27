@@ -19,5 +19,5 @@ Use the tools of this plugin's `glassengine` MCP server (`http://127.0.0.1:27281
    Use `set_status` to show what you are working on. Call `release` when you leave.
 
 If the `glassengine` tools are missing, or every call fails to connect, GlassEngine is not
-running. Say so, and point to step 8 of the nimblebrain-setup skill ("Install and start the
-examples"), which starts it with `examples.sh start <checkout>`.
+running. Say so. Setup starts it, and a second run of setup reuses what is already there:
+`/nimblebrain:setup` in Claude Code, or "set up NimbleBrain" in Codex.

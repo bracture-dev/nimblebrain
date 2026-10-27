@@ -8,7 +8,7 @@
     {
       "name": "nimblebrain",
       "source": "./plugins/claude-code/nimblebrain",
-      "description": "Sets up NimbleBrain on your machine, connects Claude Code to the local showcase and GlassEngine apps, and adds /nimblebrain:glass-join."
+      "description": "Sets up NimbleBrain on your machine with /nimblebrain:setup, connects Claude Code to it and its showcase and GlassEngine apps, and adds /nimblebrain:glass-join."
     }
   ]
 }

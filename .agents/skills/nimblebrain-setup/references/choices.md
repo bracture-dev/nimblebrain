@@ -12,7 +12,8 @@ lives inside the folder:
 |---|---|
 | `<NB_DIR>/` | The NimbleBrain source, stock |
 | `<NB_DIR>/.env` | Ports, telemetry switch and the provider key (gitignored) |
-| `<NB_DIR>/.nimblebrain-worktree/` | All runtime state: config, workspaces, conversations, files, logs (gitignored) |
+| `<NB_DIR>/.nimblebrain-worktree/` | NimbleBrain's runtime state: config, workspaces, conversations, files, logs, and setup's own record, `onboarding.json` (gitignored) |
+| `<NB_DIR>/examples/glassengine/.glassengine/` | GlassEngine's transcript, switches and token (gitignored) |
 
 `bun run dev:worktree` is the launcher that keeps state there. Plain `bun run dev` keeps state in
 `~/.nimblebrain` instead, on ports 27247 and 27246.

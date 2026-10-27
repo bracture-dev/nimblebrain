@@ -16,10 +16,11 @@ Restart after you change `.env` (key, ports), `nimblebrain.json`, or a connector
 
 ```bash
 bash "$SCRIPTS/stop.sh" "$NB_DIR"
-bash "$SCRIPTS/examples.sh" start "$NB_DIR"
-bash "$SCRIPTS/start.sh" "$NB_DIR"
-bash "$SCRIPTS/verify.sh" <API> <WEB>
+bash "$SCRIPTS/setup.sh" --agent claude --dir "$NB_DIR"   # or --agent codex
 ```
+
+`setup.sh` reuses everything already in place, starts the examples and then NimbleBrain, and
+checks the result. Run by hand, the order is `examples.sh start`, `start.sh`, `verify.sh`.
 
 `stop.sh` stops the examples too, and `start.sh` does not start them. Start them before
 NimbleBrain, because NimbleBrain connects to its connectors as it starts.
@@ -29,6 +30,14 @@ The API also reloads by itself when files under `src/` change (it runs under `bu
 ## Open it again later
 
 `http://localhost:<WEB>`. If nothing answers, it is not running: `bash "$SCRIPTS/start.sh" "$NB_DIR"`.
+
+## Uninstall what setup added
+
+`bash "$SCRIPTS/uninstall.sh" "$NB_DIR"` stops everything and removes exactly what `setup.sh`
+recorded in `onboarding.json`: the agents' `nimblebrain` MCP entries (only while they still point at
+this install), the Codex feature if setup turned it on, and each agent's nimblebrain plugin and
+marketplace from the recorded source. Add `--delete-key` to also delete the saved Anthropic key
+(it asks first). The checkout folder stays.
 
 ## Update
 
@@ -49,7 +58,7 @@ connection with `claude mcp get nimblebrain`.
 
 ## Back up
 
-Everything worth keeping is `<NB_DIR>/.nimblebrain-worktree/` (and `.env`, which holds the key).
+Everything worth keeping is `<NB_DIR>/.nimblebrain-worktree/`, `<NB_DIR>/examples/glassengine/.glassengine/` (GlassEngine's transcript and token) and `.env`.
 Copy that folder while NimbleBrain is stopped.
 
 ## Uninstall

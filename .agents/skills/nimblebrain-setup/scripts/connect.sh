@@ -2,8 +2,8 @@
 # Add the showcase and GlassEngine to the local workspace as connectors, then restart NimbleBrain.
 # Needs NimbleBrain started once (that creates the workspace) and both examples running (GlassEngine
 # writes its token on first start). The examples keep running; only NimbleBrain restarts, because it
-# reads connectors only at start. Backs up each file it changes (.bak) and skips what is already
-# there, so a second run changes nothing.
+# reads connectors only at start. Backs up each file once before its first edit, adds only what is
+# missing, and asks (exit 3) about a value set differently, so a second run changes nothing.
 #
 # Usage: connect.sh <checkout> [--showcase-port <port>] [--glass-port <port>]
 
@@ -36,43 +36,58 @@ token_file="$dir/examples/glassengine/.glassengine/token"
 [ -s "$token_file" ] || { echo "[connect] no $token_file; run examples.sh start first" >&2; exit 1; }
 
 echo "[connect] workspace $ws"
+# Adds only our keys. A value already set differently is reported (exit 3) and left alone. Each file
+# gets one timestamped backup next to it before our first edit.
 changed=$(CFG="$work/nimblebrain.json" WSJ="$work/workspaces/$ws/workspace.json" SC="$sc" GE="$ge" \
   GE_TOKEN="$(cat "$token_file")" bun -e '
-  import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+  import { copyFileSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+  import { basename, dirname } from "node:path";
   const { CFG, WSJ, SC, GE, GE_TOKEN } = process.env;
   const read = (p) => JSON.parse(readFileSync(p, "utf8"));
-  const write = (p, v) => { if (existsSync(p)) copyFileSync(p, `${p}.bak`); writeFileSync(p, `${JSON.stringify(v, null, 2)}\n`); };
-  let n = 0;
-  const cfg = read(CFG);
-  if (cfg.allowInsecureRemotes !== true) { cfg.allowInsecureRemotes = true; write(CFG, cfg); n++; }
-  const ws = read(WSJ);
-  ws.connectors ??= [];
-  const add = (entry) => {
-    if (ws.connectors.some((c) => c.serverName === entry.serverName)) return;
-    ws.connectors.push(entry);
-    n++;
+  const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
+  const write = (p, v) => {
+    const mine = readdirSync(dirname(p)).some((f) => f.startsWith(`${basename(p)}.nimblebrain-setup-`));
+    if (!mine) copyFileSync(p, `${p}.nimblebrain-setup-${stamp}.bak`);
+    writeFileSync(p, `${JSON.stringify(v, null, 2)}\n`);
   };
-  add({
-    url: `http://127.0.0.1:${SC}/mcp`,
-    serverName: "showcase",
-    transport: { type: "streamable-http", auth: { type: "bearer", token: "local-showcase" } },
-    ui: { placements: [
-      { slot: "sidebar.apps", resourceUri: "ui://showcase/app", route: "showcase", label: "Showcase", priority: 20 },
-      { slot: "main", resourceUri: "ui://showcase/tour", route: "showcase/tour", label: "Showcase tour" },
-      { slot: "main", resourceUri: "ui://showcase/table", route: "showcase/table", label: "Showcase table" },
-    ] },
-  });
-  add({
-    url: `http://127.0.0.1:${GE}/mcp`,
-    serverName: "glassengine",
-    transport: { type: "streamable-http", auth: { type: "bearer", token: GE_TOKEN } },
-    ui: { placements: [
-      { slot: "sidebar.apps", resourceUri: "ui://glassengine/main", route: "glassengine", label: "GlassEngine" },
-    ] },
-  });
-  if (n) write(WSJ, ws);
-  console.log(n);
-')
+  const ask = (m) => { console.error(`ASK: ${m}`); process.exit(3); };
+  const added = [];
+  const cfg = read(CFG);
+  if (cfg.allowInsecureRemotes === false) ask(`${CFG} sets allowInsecureRemotes to false; the local connectors need true. Change it yourself, or skip the connectors.`);
+  if (cfg.allowInsecureRemotes !== true) { cfg.allowInsecureRemotes = true; write(CFG, cfg); added.push("config:allowInsecureRemotes"); }
+  const ws = read(WSJ);
+  const wanted = [
+    {
+      url: `http://127.0.0.1:${SC}/mcp`,
+      serverName: "showcase",
+      transport: { type: "streamable-http", auth: { type: "bearer", token: "local-showcase" } },
+      ui: { placements: [
+        { slot: "sidebar.apps", resourceUri: "ui://showcase/app", route: "showcase", label: "Showcase", priority: 20 },
+        { slot: "main", resourceUri: "ui://showcase/tour", route: "showcase/tour", label: "Showcase tour" },
+        { slot: "main", resourceUri: "ui://showcase/table", route: "showcase/table", label: "Showcase table" },
+      ] },
+    },
+    {
+      url: `http://127.0.0.1:${GE}/mcp`,
+      serverName: "glassengine",
+      transport: { type: "streamable-http", auth: { type: "bearer", token: GE_TOKEN } },
+      ui: { placements: [
+        { slot: "sidebar.apps", resourceUri: "ui://glassengine/main", route: "glassengine", label: "GlassEngine" },
+      ] },
+    },
+  ];
+  const connectors = ws.connectors ?? [];
+  for (const entry of wanted) {
+    const have = connectors.find((c) => c.serverName === entry.serverName);
+    if (!have) { connectors.push(entry); added.push(`connector:${entry.serverName}`); continue; }
+    if (have.url !== entry.url) ask(`workspace.json already has a ${entry.serverName} connector at ${have.url}, not ${entry.url}. Keep it, or remove it yourself and rerun.`);
+    if (entry.serverName === "glassengine" && have.transport?.auth?.token !== GE_TOKEN)
+      ask("workspace.json has a glassengine connector whose token differs from the token of this GlassEngine. Keep it, or remove it yourself and rerun.");
+  }
+  if (added.some((a) => a.startsWith("connector:"))) { ws.connectors = connectors; write(WSJ, ws); }
+  for (const a of added) console.error(`[connect] added ${a}`);
+  console.log(added.length);
+') || exit $?
 
 if [ "$changed" = 0 ]; then
   echo "[connect] already connected; nothing changed"

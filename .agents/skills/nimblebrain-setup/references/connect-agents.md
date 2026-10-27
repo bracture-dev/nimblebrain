@@ -30,11 +30,12 @@ claude mcp get nimblebrain        # expect: Status: Connected
   default scope, `local`, applies only to the folder you run it in.
 - `--scope project` writes `.mcp.json` into the current folder and asks for approval on the next
   start. Avoid it inside the NimbleBrain checkout, which should stay stock.
-- A running session does not pick up a new server. Start a new `claude` session, then try
-  "list my NimbleBrain conversations" or "what is NimbleBrain's status?".
+- A running session does not pick up a server added with `claude mcp add`. Until the next session,
+  the agent reaches the same tools with `scripts/nb-tool.sh` (for example
+  `nb-tool.sh nb__set_preferences '{"theme":"dark"}'`). A new session has them as MCP tools.
 - To remove it: `claude mcp remove nimblebrain` (add `--scope user` if you added it there).
 
-## Codex CLI (experimental)
+## Codex CLI
 
 Which connection works on which MCP version (checked with an `initialize` request):
 
@@ -56,8 +57,9 @@ url = "http://127.0.0.1:27280/mcp"
 http_headers = { Authorization = "Bearer local-showcase" }
 ```
 
-The workspace needs the `mcp_2026_07_28` feature, which Codex marks as under development. Ask
-first, because it changes Codex's settings for every project on the machine.
+The workspace needs the `mcp_2026_07_28` feature, which Codex marks as under development. The fast
+path turns it on, as part of the plan the person approves, because it changes Codex's settings for
+every project on the machine. `setup.sh` leaves it alone when the person set it to `false`.
 
 ```bash
 codex features enable mcp_2026_07_28
@@ -71,16 +73,18 @@ codex mcp list                    # nimblebrain: enabled
 - `codex mcp list` shows `Auth: Unknown` for this server. That is expected: dev mode has no login.
 - A project's `.codex/config.toml` that sets `enabled = false` for a server wins over the global
   entry. Check there if tools do not appear.
-- Start a new Codex session and ask it to call `nb__status` from the nimblebrain server.
-- Without the feature, Codex still drives the showcase and joins GlassEngine. NimbleBrain's own
-  tools (conversations, files, tasks, preferences) stay out of its reach, so it can move the setup
-  checklist but cannot save the name, timezone or theme. NimbleBrain's own agent can.
+- With the feature on, Codex reaches NimbleBrain's own tools, so it saves the name, timezone and
+  theme with `nb__set_preferences`. A new Codex session has them as MCP tools; until then, and in a
+  session that started before the server was added, use `scripts/nb-tool.sh`.
+- Fallback only: with the feature off, Codex still drives the showcase and joins GlassEngine, and
+  `scripts/nb-tool.sh` still reaches NimbleBrain's tools, because it speaks `2026-07-28` itself.
 - To remove it: `codex mcp remove nimblebrain`, and `codex features disable mcp_2026_07_28` if nothing
   else needs it.
 
 ## Any other MCP client
 
-Point it at the URL with the Streamable HTTP transport. It must speak `2026-07-28`. Here is the raw
+Point it at the URL with the Streamable HTTP transport. It must speak `2026-07-28`. A stock
+`@modelcontextprotocol/client` 2.0.0 gets `-32022` unless you pin it to protocol `2026-07-28`. Here is the raw
 request, for scripts and for checking a client by hand:
 
 ```bash

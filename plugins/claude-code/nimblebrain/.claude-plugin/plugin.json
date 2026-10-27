@@ -1,7 +1,8 @@
 {
   "name": "nimblebrain",
+  "version": "0.1.0",
   "displayName": "NimbleBrain",
-  "description": "Run NimbleBrain on your own machine with its showcase and GlassEngine apps, connect Claude Code to both, and answer in NimbleBrain from this session with /nimblebrain:glass-join.",
+  "description": "Set up NimbleBrain on your own machine with /nimblebrain:setup: NimbleBrain, its showcase and GlassEngine apps, all connected, then answer in NimbleBrain from this session with /nimblebrain:glass-join.",
   "author": {
     "name": "NimbleBrain"
   },
