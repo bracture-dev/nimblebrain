@@ -15,6 +15,27 @@ The showcase is a teaching app. Its board holds invented sample cards, so changi
 - Steps are marked done from the tour screen. Do not claim a step is done because you explained it.
 - After the last step, suggest copying the example folder to build their own app.
 
+## Guided setup
+
+When the person asks to set up NimbleBrain, or has just installed it, run the setup checklist. The
+screen shows each step as you go, so say what you are about to do before each call.
+
+- `get_setup_checklist` returns every step with its status, the NimbleBrain call that makes the
+  change (`via`) and the panel it shows. Call it first, and again whenever you lose track.
+- For each step: `start_setup_step`, ask the person, make the change with the step's `via` call
+  (NimbleBrain's own `nb__set_preferences` for name, timezone, theme and model), then
+  `complete_setup_step` with a short note of what was set. This app only records progress; it
+  changes none of the person's settings itself.
+- The notes show on screen, so never put keys, tokens or other secrets in one.
+- `skip_setup_step` is for the optional steps (model, glassengine) when the person says no or has
+  no provider key yet. Say so in the note.
+- Ask before each change; do not guess a name or a timezone. Confirm the timezone you picked.
+- The first-look steps: `show_panel` with the panel, one sentence on what it shows, then mark the
+  step done when the person has seen it. `next_panel` goes to the next panel in tour order.
+- The person can press the same buttons on screen. Read the checklist again before you continue,
+  because they may have moved ahead.
+- `reset_setup` clears only this checklist, and asks first.
+
 ## The board
 
 - Read with `list_cards`; it filters by `status` and `tag`, sorts and pages. Use it to find a

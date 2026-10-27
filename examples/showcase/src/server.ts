@@ -10,6 +10,7 @@ import {
 } from "@modelcontextprotocol/server";
 import { createBoard } from "./board.ts";
 import { createShowcaseServer, type ShowcaseState } from "./mcp.ts";
+import { createSetup } from "./setup.ts";
 import { loadSkills } from "./skills.ts";
 import { createTour } from "./tour.ts";
 import { renderPage } from "./ui.ts";
@@ -22,6 +23,7 @@ export function createShowcase(options: { token?: string } = {}) {
   const state: ShowcaseState = {
     board: createBoard(),
     tour: createTour(),
+    setup: createSetup(),
     skills: loadSkills(join(import.meta.dir, "..", "skills")),
     page: renderPage,
   };
@@ -31,6 +33,7 @@ export function createShowcase(options: { token?: string } = {}) {
   // After every write, tell listening clients the resources changed. NimbleBrain relays the notice
   // to this server's open frames, which re-read the board.
   state.board.onChange(() => handler.notify.resourcesChanged());
+  state.setup.onChange(() => handler.notify.resourcesChanged());
 
   const fetch = (request: Request): Promise<Response> | Response => {
     // Answer only requests addressed to this machine.

@@ -2,15 +2,16 @@
 
 A guided tour of what stock NimbleBrain does with an MCP App. It is one small MCP server that you run
 on your own machine and add to a local workspace as a connector. Inside NimbleBrain it shows a
-sidebar app with seven panels, each built on one capability and each naming the MCP tools it calls:
+sidebar app with eight panels, each built on one capability and each naming the MCP tools it calls:
 
 | Panel | What it shows | Tools it calls |
 |---|---|---|
+| Setup | A checklist your own agent drives: name, timezone, theme, model, GlassEngine, a first look at each panel | `get_setup_checklist`, `start_setup_step`, `complete_setup_step`, `skip_setup_step`, `show_panel`, `next_panel`, `reset_setup` |
 | Tour | Ten steps through the panels below, with saved progress | `start_tour`, `save_tour_step` |
 | Board | Tools behind a screen, and live sync: what the agent changes appears at once | `list_cards`, `add_card`, `move_card` |
 | Table | Sorting, filtering and paging as arguments to one read tool | `list_cards` |
 | Chart | An SVG chart drawn from a tool result in the host's theme | `board_stats` |
-| Bridge | Requests only the host can serve: a notice, a chat message, a saved file, a link, a page opened by URI | `export_cards` |
+| Bridge | Requests only the host can serve: a notice, a chat message, context for the agent, a saved file, a link, a page opened by URI | `export_cards` |
 | Server | Tools the agent sees, app-only tools, server instructions, the published skill | `describe_server` |
 | Placements | One server filling a sidebar entry and two main-area pages | `describe_server` |
 
@@ -49,7 +50,8 @@ changed them.
    curl -s http://localhost:27247/v1/bootstrap | grep -o '"id":"ws_[0-9a-f]*"'
    ```
 
-   The work directory is `NB_WORK_DIR` if you set it, `.nimblebrain-worktree/` in the checkout for
+   The work directory is `NB_WORK_DIR` if you set it, `.nimblebrain/` in the folder you start
+   NimbleBrain from if that exists, `.nimblebrain-worktree/` in the checkout for
    `bun run dev:worktree`, and `~/.nimblebrain` otherwise.
 
 2. Let the workspace reach a server on this machine over plain HTTP. In
@@ -86,7 +88,7 @@ changed them.
 
 4. Start the showcase with `SHOWCASE_TOKEN=local-showcase bun run start`, then restart NimbleBrain,
    which reads `workspace.json` when it starts. Its log then says
-   `✓ showcase ready (9 tools, remote)`.
+   `✓ showcase ready (16 tools, remote)`.
 
 5. Open **Showcase** under Apps in the sidebar, or ask the chat to "start the showcase tour".
 
@@ -112,10 +114,38 @@ The page NimbleBrain renders in the sidebar comes from the same server:
 curl -s "http://localhost:27247/v1/workspaces/$WS/apps/showcase/resources/app" | head -c 300
 ```
 
+## Agent-driven setup
+
+The Setup panel is a twelve-step checklist that your own agent works through while you watch. Each
+step is a tool with a visible effect, and every button on the screen calls the same tool, so you can
+take over at any point. The app records progress and moves the screen; NimbleBrain's own tools make
+the changes.
+
+| Step | What your agent does | NimbleBrain call |
+|---|---|---|
+| name, timezone, theme | Asks you, then saves it. Theme applies at once | `nb__set_preferences` |
+| model (optional) | Asks which model new conversations use | `nb__set_preferences` with `model` |
+| glassengine (optional) | Asks whether to connect your own agent in a tab | a second connector |
+| first look, seven steps | Shows each panel and says what it demonstrates | `show_panel`, `next_panel` |
+
+Connect your agent to the workspace endpoint, `http://localhost:27247/mcp/<wsId>` (use your own
+port), and tell it: "set up NimbleBrain with the showcase". Its loop, per step:
+
+1. `showcase__get_setup_checklist` for the steps, their statuses and the call to make.
+2. `showcase__start_setup_step`, which marks the step in progress and shows its panel.
+3. The change, for example `nb__set_preferences {"timezone": "Pacific/Honolulu"}`.
+4. `showcase__complete_setup_step` with a short note, or `showcase__skip_setup_step` for an
+   optional step. Notes show on screen, so they never hold keys or secrets.
+
+Any MCP client works. A raw call through the endpoint looks like the one in "Check it from a
+terminal"; swap in `tools/call` with `{"name": "showcase__start_setup_step", "arguments":
+{"step": "name"}}`. Progress is held in memory and starts over when the showcase restarts.
+Resetting it with `reset_setup` changes none of your NimbleBrain settings.
+
 ## Start the tour
 
 From the chat, "start the showcase tour" makes the agent call `start_tour`, which shows the tour in
-the chat answer. Without a provider key, open **Showcase** from the sidebar; the Tour panel is
+the chat answer. Without a provider key, open **Showcase** from the sidebar; the Setup panel is
 first. A setup script or agent can point people at either.
 
 ## How it is built
@@ -126,6 +156,7 @@ first. A setup script or agent can point people at either.
 | `src/mcp.ts` | Tools, `ui://` pages, the skills listing and the server instructions |
 | `src/board.ts` | The sample board |
 | `src/tour.ts` | The tour steps and progress |
+| `src/setup.ts` | The setup checklist and which panel is showing |
 | `src/skills.ts` | Serving `skills/` over the MCP skills extension |
 | `src/ui.ts` | Builds each page: `ui/` plus NimbleBrain's Synapse SDK, inlined into one document |
 | `ui/` | The page: plain HTML, CSS and JavaScript, no build step |

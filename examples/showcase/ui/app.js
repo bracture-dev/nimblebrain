@@ -5,6 +5,19 @@ const Synapse = window.Synapse;
 const PAGE = document.querySelector('meta[name="showcase-page"]')?.content ?? "app";
 
 const PANELS = [
+  {
+    id: "setup",
+    label: "Setup",
+    tools: [
+      "get_setup_checklist",
+      "start_setup_step",
+      "complete_setup_step",
+      "skip_setup_step",
+      "show_panel",
+      "next_panel",
+      "reset_setup",
+    ],
+  },
   { id: "tour", label: "Tour", tools: ["start_tour", "save_tour_step"] },
   { id: "board", label: "Board", tools: ["list_cards", "add_card", "move_card"] },
   { id: "table", label: "Table", tools: ["list_cards"] },
@@ -19,8 +32,9 @@ const PAGE_SIZE = 5;
 
 const root = document.getElementById("root");
 let app = null;
-let panel = PAGE === "app" ? "tour" : PAGE;
+let panel = PAGE === "app" ? "setup" : PAGE;
 let tourData = null;
+let setupData = null;
 let notices = 0;
 const callLog = [];
 const tableView = { sort: "created", direction: "asc", tag: "", status: "", offset: 0 };
@@ -127,6 +141,89 @@ async function renderTour() {
       next ? ` Next: ${next.title}.` : " All done.",
     ),
     h("ol", { class: "steps" }, steps),
+  );
+}
+
+const STATUS_MARK = { pending: "[ ]", in_progress: "[>]", done: "[x]", skipped: "[-]" };
+
+async function renderSetup() {
+  setupData = setupData ?? (await call("get_setup_checklist"));
+  const data = setupData;
+  // Every control below calls a tool, then the screen re-reads the checklist.
+  const write = async (name, args = {}) => {
+    try {
+      setupData = await call(name, args);
+    } catch (error) {
+      setupData = null;
+      alertLine(error);
+      return;
+    }
+    render();
+  };
+  const note = h("input", {
+    placeholder: "Note for this step (no keys or secrets)",
+    maxlength: 280,
+    "aria-label": "Note for the step in progress",
+  });
+  const rows = data.steps.map((step) => {
+    const active = step.status === "in_progress";
+    return h(
+      "li",
+      { class: `step ${step.status}` },
+      h("span", { class: "mark", "aria-label": step.status.replace("_", " ") }, STATUS_MARK[step.status]),
+      h("strong", { class: "step-title" }, step.title, step.optional ? " (optional)" : ""),
+      h(
+        "span",
+        { class: "row" },
+        step.status === "pending" || step.status === "skipped"
+          ? h("button", { onclick: () => write("start_setup_step", { step: step.id }) }, "Start")
+          : null,
+        active
+          ? h(
+              "button",
+              {
+                class: "primary",
+                onclick: () => write("complete_setup_step", { step: step.id, note: note.value }),
+              },
+              "Done",
+            )
+          : null,
+        active && step.optional
+          ? h(
+              "button",
+              { onclick: () => write("skip_setup_step", { step: step.id, note: note.value }) },
+              "Skip",
+            )
+          : null,
+      ),
+      h("p", {}, step.instruction),
+      step.via ? h("p", { class: "muted" }, "NimbleBrain call: ", h("code", {}, step.via)) : null,
+      step.note ? h("p", { class: "muted" }, `Note: ${step.note}`) : null,
+      active ? note : null,
+    );
+  });
+  return h(
+    "div",
+    { class: "stack" },
+    h("h1", {}, "Setup"),
+    h(
+      "p",
+      { class: "muted" },
+      `${data.done} of ${data.total} done${data.skipped ? `, ${data.skipped} skipped` : ""}.`,
+      data.current ? ` Current: ${data.current.title}.` : " All finished.",
+    ),
+    h(
+      "div",
+      { class: "row" },
+      h("button", { onclick: () => write("next_panel") }, "Next panel"),
+      h("button", { onclick: () => write("reset_setup") }, "Reset checklist"),
+    ),
+    h("ol", { class: "steps" }, rows),
+    h(
+      "p",
+      { class: "muted" },
+      "Your agent changes name, timezone, theme and model with NimbleBrain's own nb__set_preferences tool. This list only records how far it got.",
+    ),
   );
 }
 
@@ -515,6 +612,7 @@ function alertLine(error) {
 }
 
 const RENDERERS = {
+  setup: renderSetup,
   tour: renderTour,
   board: renderBoard,
   table: renderTable,
@@ -526,9 +624,15 @@ const RENDERERS = {
 
 // ---------------------------------------------------------------- shell
 
-function openPanel(id) {
+async function openPanel(id) {
   if (PAGE === "app") {
-    panel = id;
+    // The shown panel is shared state: the tool moves every open copy of the app.
+    try {
+      setupData = await call("show_panel", { panel: id });
+    } catch (error) {
+      alertLine(error);
+      return;
+    }
     render();
   } else {
     // A single-panel page (in a chat answer, say) opens the full app instead.
@@ -559,6 +663,11 @@ async function render() {
   const ticket = ++rendering;
   let body;
   try {
+    // In the full app, the checklist also says which panel is showing.
+    if (PAGE === "app") {
+      setupData = setupData ?? (await call("get_setup_checklist"));
+      panel = setupData.panel;
+    }
     body = await RENDERERS[panel]();
   } catch (error) {
     body = errorLine(error);
@@ -578,7 +687,32 @@ async function render() {
           ),
         )
       : null;
-  root.replaceChildren(...[tabs, body, callsFooter(panel), logBox].filter(Boolean));
+  // While a step shows another panel, keep its Done button in reach.
+  const active = PAGE === "app" && panel !== "setup" ? setupData?.current : null;
+  const bar =
+    active?.status === "in_progress"
+      ? h(
+          "div",
+          { class: "row setup-bar" },
+          h("span", {}, `Setup step: ${active.title}`),
+          h("span", { style: "flex:1" }),
+          h(
+            "button",
+            {
+              class: "primary",
+              onclick: async () => {
+                setupData = await call("complete_setup_step", { step: active.id }).catch(
+                  (e) => (alertLine(e), null),
+                );
+                render();
+              },
+            },
+            "Done",
+          ),
+          h("button", { onclick: () => openPanel("setup") }, "Back to setup"),
+        )
+      : null;
+  root.replaceChildren(...[tabs, bar, body, callsFooter(panel), logBox].filter(Boolean));
   app.updateModelContext(
     { page: PAGE, panel },
     `The person is looking at the showcase ${panel} panel.`,
@@ -604,6 +738,7 @@ async function start() {
   app.on("notifications/resources/list_changed", () => {
     notices += 1;
     tourData = null;
+    setupData = null;
     render();
   });
   app.on("theme-changed", () => render());

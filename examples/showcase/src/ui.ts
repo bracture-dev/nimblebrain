@@ -12,7 +12,7 @@ export const MCP_APP_MIME = "text/html;profile=mcp-app";
 export const PAGES = ["app", "tour", "table"] as const;
 export type Page = (typeof PAGES)[number];
 
-/** Two path segments after the authority: NimbleBrain needs a path to place a page. */
+/** A path after the authority: NimbleBrain needs one to place a page. */
 export const pageUri = (page: Page) => `ui://showcase/${page}`;
 
 const UI_DIR = join(import.meta.dir, "..", "ui");

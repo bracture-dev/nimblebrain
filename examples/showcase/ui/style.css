@@ -232,3 +232,21 @@ th button {
 .chart .bar.alt {
   fill: var(--color-text-secondary, #6b6b70);
 }
+.step .mark {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  margin-right: 6px;
+}
+.step.in_progress {
+  border-left: 3px solid var(--color-text-accent, #3b5bdb);
+}
+.step.skipped .step-title {
+  color: var(--color-text-secondary, #6b6b70);
+}
+.setup-bar {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border-primary, #d0d0d5);
+  border-radius: var(--border-radius-sm, 6px);
+}
+.step > input {
+  grid-column: 2 / 4;
+}

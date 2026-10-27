@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { createBoard } from "../src/board.ts";
 import { createShowcase } from "../src/server.ts";
+import { createSetup, PANEL_IDS, SETUP_STEPS } from "../src/setup.ts";
 import { listEntry, parseFrontmatter } from "../src/skills.ts";
 import { createTour, TOUR } from "../src/tour.ts";
 
@@ -107,8 +108,54 @@ describe("tour", () => {
       "save_tour_step",
       "export_cards",
       "describe_server",
+      "show_panel",
     ]);
     for (const step of TOUR) for (const tool of step.tools) expect(tools.has(tool)).toBe(true);
+  });
+});
+
+describe("setup", () => {
+  test("starts, completes and skips steps, one in progress at a time", () => {
+    const setup = createSetup();
+    expect(setup.view()).toMatchObject({ done: 0, panel: "setup", current: { id: "name" } });
+    setup.start("name");
+    setup.start("timezone");
+    const view = setup.complete("timezone", "  Pacific/Honolulu ");
+    expect(view.steps.filter((s) => s.status === "in_progress")).toHaveLength(0);
+    expect(view.steps.find((s) => s.id === "name")?.status).toBe("pending");
+    expect(view.steps.find((s) => s.id === "timezone")).toMatchObject({
+      status: "done",
+      note: "Pacific/Honolulu",
+    });
+    expect(setup.skip("model", "no key yet").skipped).toBe(1);
+    expect(() => setup.skip("name")).toThrow("not optional");
+    expect(() => setup.start("nope")).toThrow("get_setup_checklist");
+  });
+
+  test("a step moves the app to its panel, and next goes along tour order", () => {
+    const setup = createSetup();
+    expect(setup.start("look-board").panel).toBe("board");
+    expect(setup.showPanel("tour").panel).toBe("tour");
+    expect(setup.nextPanel()).toMatchObject({ moved: true, view: { panel: "board" } });
+    setup.showPanel("placements");
+    expect(setup.nextPanel()).toMatchObject({ moved: false, view: { panel: "placements" } });
+  });
+
+  test("every write is announced, and reset clears the checklist", () => {
+    const setup = createSetup();
+    let changes = 0;
+    setup.onChange(() => changes++);
+    setup.start("name");
+    setup.complete("name");
+    setup.showPanel("chart");
+    setup.nextPanel();
+    expect(setup.reset()).toMatchObject({ done: 0, panel: "setup" });
+    expect(changes).toBe(5);
+  });
+
+  test("has a first-look step for every panel after setup", () => {
+    const looks = SETUP_STEPS.filter((s) => s.id.startsWith("look-")).map((s) => s.panel);
+    expect(looks).toEqual(PANEL_IDS.filter((id) => id !== "setup"));
   });
 });
 
@@ -139,6 +186,29 @@ describe("skills", () => {
   });
 });
 
+describe("MCP server setup tools", () => {
+  test("drive the checklist over MCP and announce each write", async () => {
+    const showcase = createShowcase();
+    let changes = 0;
+    showcase.state.setup.onChange(() => changes++);
+    const call = async (name: string, args: Record<string, unknown> = {}) =>
+      (await rpc(showcase.fetch, "tools/call", { name, arguments: args })).body.result;
+    expect((await call("get_setup_checklist")).structuredContent.total).toBe(12);
+    expect((await call("start_setup_step", { step: "theme" })).structuredContent.current.id).toBe(
+      "theme",
+    );
+    const done = await call("complete_setup_step", { step: "theme", note: "dark" });
+    expect(done.structuredContent.done).toBe(1);
+    expect((await call("show_panel", { panel: "chart" })).structuredContent.panel).toBe("chart");
+    expect((await call("next_panel")).structuredContent).toMatchObject({
+      panel: "bridge",
+      moved: true,
+    });
+    expect((await call("skip_setup_step", { step: "name" })).isError).toBe(true);
+    expect(changes).toBe(4);
+  });
+});
+
 describe("MCP server", () => {
   test("lists every tool and marks the screen's own tools app-only", async () => {
     const { fetch } = createShowcase();
@@ -147,7 +217,7 @@ describe("MCP server", () => {
     const appOnly = tools.filter((t) =>
       (t._meta?.ui?.visibility as string[] | undefined)?.includes("app"),
     );
-    expect(tools).toHaveLength(9);
+    expect(tools).toHaveLength(16);
     expect(appOnly.map((t) => t.name).sort()).toEqual([
       "describe_server",
       "export_cards",

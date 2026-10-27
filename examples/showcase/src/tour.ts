@@ -64,7 +64,7 @@ export const TOUR: readonly TourStep[] = [
     id: "bridge",
     title: "The bridge to the host",
     panel: "bridge",
-    try: "Try each button: a notice, a chat message, a saved file, a link, a page opened by URI.",
+    try: "Try each button: a notice, a chat message, context for the agent, a saved file, a link, a page opened by URI.",
     shows:
       "Besides tool calls, a frame can ask the host for things only the host can do. Each button is one bridge request, made with NimbleBrain's Synapse SDK.",
     tools: ["export_cards"],
