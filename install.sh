@@ -64,6 +64,20 @@ main() {
       case "$(cat)" in *'"nimblebrain"'*) echo "other (cannot read it without bun or node)" ;; *) echo absent ;; esac
     fi
   }
+  # Whether nimblebrain@nimblebrain is installed, from the agent's JSON plugin listing on stdin.
+  plugin_installed() {
+    local js='
+      const fs = require("node:fs");
+      let raw = null; try { raw = JSON.parse(fs.readFileSync(0, "utf8")); } catch {}
+      const id = "nimblebrain@nimblebrain";
+      const yes = Array.isArray(raw) ? raw.some((p) => p.id === id)
+        : ((raw && raw.installed) || []).some((p) => p.pluginId === id && p.installed);
+      console.log(yes ? "yes" : "no");'
+    if have bun; then bun -e "$js"
+    elif have node; then node -e "$js"
+    else case "$(cat)" in *'nimblebrain@nimblebrain'*) echo yes ;; *) echo no ;; esac
+    fi
+  }
   want=$repo
   [ -d "$repo" ] && want=$(cd "$repo" && pwd -P)
   conflict() {
@@ -87,7 +101,7 @@ main() {
         claude plugin marketplace add "$src" </dev/null
         added_marketplace=true ;;
     esac
-    if claude plugin list </dev/null 2>/dev/null | grep -q 'nimblebrain@nimblebrain'; then
+    if [ "$(claude plugin list --json </dev/null 2>/dev/null | plugin_installed)" = yes ]; then
       step "Claude Code: updating the nimblebrain plugin"
       claude plugin update nimblebrain@nimblebrain </dev/null >/dev/null
     else
@@ -112,7 +126,7 @@ main() {
         fi
         added_marketplace=true ;;
     esac
-    if codex plugin list </dev/null 2>/dev/null | grep -q 'nimblebrain@nimblebrain.*installed\|nimblebrain@nimblebrain.*enabled'; then
+    if [ "$(codex plugin list --json </dev/null 2>/dev/null | plugin_installed)" = yes ]; then
       step "Codex: the nimblebrain plugin is installed"
     else
       step "Codex: installing the nimblebrain plugin"
