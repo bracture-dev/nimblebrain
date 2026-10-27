@@ -60,8 +60,9 @@ question (AskUserQuestion in Claude Code); otherwise ask in plain text with the 
    > I will set up NimbleBrain in `~/nimblebrain` (NimbleBrain on localhost 27270, its API on
    > 27271, the showcase on 27280, GlassEngine on 27281; telemetry off). I install from the
    > lockfiles, start all three, add the showcase and GlassEngine to your workspace, connect this
-   > agent to all three, put a NimbleBrain shortcut on your Desktop, and open GlassEngine for you. Anything already set up is reused; I add, I
-   > never replace. NimbleBrain's own chat needs an Anthropic key, which you can add after.
+   > agent to all three, put a NimbleBrain shortcut on your Desktop, and open GlassEngine for you.
+   > Anything already set up is reused; I add, I never replace. NimbleBrain's own chat needs an
+   > Anthropic key, which you can add after.
 
    For a missing tool, add its install command to the same plan, from
    [references/prerequisites.md](references/prerequisites.md) (Homebrew when `brew` exists). A
@@ -72,8 +73,9 @@ question (AskUserQuestion in Claude Code); otherwise ask in plain text with the 
    dependencies once per commit, writes `.env` (it only adds missing lines), starts the showcase and
    GlassEngine and then NimbleBrain, adds both as workspace connectors, verifies, and adds this
    agent's `nimblebrain` workspace connection (Codex: and the `mcp_2026_07_28` feature), and puts a
-   `NimbleBrain.webloc` shortcut on the Desktop that opens NimbleBrain in the default browser. Exit 3 with
-   a line starting `ASK:` means it found a conflict and stopped: show that line and ask. A second
+   `NimbleBrain.webloc` shortcut with NimbleBrain's icon on the Desktop, which opens NimbleBrain in
+   the default browser. Exit 3 with a line starting `ASK:` means it found a conflict and stopped:
+   show that line and ask. A second
    run on a finished install says "already set up" and goes straight to the hand-over.
 4. **The key, optional.** Ask **Do you have an Anthropic API key?** with **Yes**, **No, help me get
    one** and **Later**. NimbleBrain's own chat uses it; setup through GlassEngine does not.
@@ -85,7 +87,7 @@ question (AskUserQuestion in Claude Code); otherwise ask in plain text with the 
    Both commands need to run outside your sandbox. If they cannot run, print the command for the
    person to run in their own terminal. Tell them never to paste the key into this chat. Check with
    `bash "$SCRIPTS/set-key.sh" --check`, which reads only whether it is saved. When it says yes,
-   restart NimbleBrain (`stop.sh --keep-examples`, then `start.sh`) so it picks the key up. Until
+   restart NimbleBrain (`stop.sh "$NB_DIR" --keep-examples`, then `start.sh "$NB_DIR"`) so it picks the key up. Until
    then, the web page may still list Anthropic as a provider; chat will not answer without a key.
 5. **Hand over.** Open GlassEngine for the person with `open <GlassEngine URL>` (the URL is the
    `GlassEngine:` line `setup.sh` printed; `open` needs to run outside your sandbox). Then join as
