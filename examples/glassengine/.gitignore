@@ -1,0 +1,3 @@
+# Your own engines and GlassEngine's chat transcript, switches and token stay on your machine.
+glassengine.config.json
+.glassengine/
