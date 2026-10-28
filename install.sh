@@ -195,13 +195,18 @@ main() {
     else node -e "$js" -- "$note" "$agent" "$added_marketplace" "$added_plugin"; fi
   fi
 
+  local glass_url="" state_dir=${NB_DIR:-$HOME/nimblebrain}
+  case "$state_dir" in "~") state_dir=$HOME ;; "~/"*) state_dir="$HOME/${state_dir#"~/"}" ;; esac
   if [ "$terminal_setup" = true ]; then
     bash "$scripts/setup.sh" --agent "$agent" --dir "${NB_DIR:-$HOME/nimblebrain}" --repo "$repo" --ref "$ref"
+    glass_url=$(STATE="$state_dir/.nimblebrain-worktree/onboarding.json" bun -e '
+      const s = await Bun.file(process.env.STATE).json();
+      console.log(`http://localhost:${s.ports.web}/w/${encodeURIComponent(s.workspaceId.replace(/^ws_/, ""))}/app/glassengine`);')
     [ -z "$bootstrap" ] || rm -rf "$bootstrap"
     trap - EXIT
   fi
 
-  local handoff="Local services are running. The terminal installer has completed setup and health verification for ${NB_DIR:-$HOME/nimblebrain} (source $repo, ref $ref). Finish this session's connection using native MCP tools: check NimbleBrain workspace status, read the Showcase checklist without changing progress, and list GlassEngine tabs. Join or reuse this session as $agent, report ready, then keep answering with wait_for_message. Ask before taking another session's tab. Repeat shell setup only if a connection check fails. Provider keys, preferences and the tour are optional afterward, only on request."
+  local handoff="Local services are running. The terminal installer has completed setup and health verification for ${NB_DIR:-$HOME/nimblebrain} (source $repo, ref $ref). Finish this session's connection using native MCP tools: check NimbleBrain workspace status, read the Showcase checklist without changing progress, and list GlassEngine tabs. Join or reuse this session as $agent. Open GlassEngine at $glass_url for the person using the client's supported browser capability; if unavailable, show that address as a clickable link. Report ready, then keep answering with wait_for_message. Ask before taking another session's tab. Repeat shell setup only if a connection check fails. Provider keys, preferences and the tour are optional afterward, only on request."
   if [ "$agent" = claude ]; then
     # The plugin's own local tools (GlassEngine and the showcase) run without a prompt each time.
     set -- claude "$handoff" \
