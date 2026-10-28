@@ -48,6 +48,7 @@ The connector's `serverName` becomes the workspace tool prefix: `my-board__add_c
 Start small: add a `category` field to `add_card`, keep it in
 [src/board.ts](../../../../examples/showcase/src/board.ts), and show it in the Board panel in
 `ui/app.js`. Update the Zod input/output schemas in `src/mcp.ts` to match.
+Give the seed cards a category default so every listed card satisfies the new output schema.
 
 Keep annotations accurate: `readOnlyHint` describes whether a tool writes, `destructiveHint`
 marks destructive behavior, and `idempotentHint` says repeating the call has the same effect.
