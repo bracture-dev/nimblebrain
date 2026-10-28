@@ -187,6 +187,19 @@ describe("skills", () => {
 });
 
 describe("MCP server setup tools", () => {
+  test("opens the setup app from its checklist tool", async () => {
+    const { fetch } = createShowcase();
+    const listed = await rpc(fetch, "tools/list");
+    const tool = listed.body.result.tools.find((t: { name: string }) => t.name === "get_setup_checklist");
+    const uri = tool?._meta?.ui?.resourceUri;
+    expect(uri).toBe("ui://showcase/app");
+    const page = await rpc(fetch, "resources/read", { uri });
+    expect(page.body.result.contents[0].mimeType).toBe("text/html;profile=mcp-app");
+    expect(page.body.result.contents[0].text).toContain('name="showcase-page" content="app"');
+    const checklist = await rpc(fetch, "tools/call", { name: "get_setup_checklist", arguments: {} });
+    expect(checklist.body.result.structuredContent.panel).toBe("setup");
+  });
+
   test("drive the checklist over MCP and announce each write", async () => {
     const showcase = createShowcase();
     let changes = 0;

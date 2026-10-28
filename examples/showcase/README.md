@@ -23,6 +23,9 @@ The board holds made-up sample cards, kept in memory. Restart the server or call
 the starting cards back. The showcase never calls a model, so every panel works without a provider
 key. Asking the chat to change the board does need one.
 
+`get_setup_checklist` also opens this app inside coding clients that render MCP Apps. Terminal
+clients use their own questions while the same checklist stays visible in NimbleBrain.
+
 ## How it fits
 
 The showcase runs as its own small server on your machine. NimbleBrain adds it to a workspace as a

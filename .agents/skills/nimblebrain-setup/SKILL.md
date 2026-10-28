@@ -101,6 +101,9 @@ question (AskUserQuestion in Claude Code); otherwise ask in plain text with the 
    **set me up** in your tab. For NimbleBrain's own tools in this session (for example
    `nb__set_preferences`), use `bash "$SCRIPTS/nb-tool.sh" --dir "$NB_DIR" <tool> '<json>'`; a new session has them
    as MCP tools.
+   Call the showcase's `get_setup_checklist` first. It opens the existing setup MCP App in clients
+   that render MCP Apps. In a terminal client, use its native questions and keep the same checklist
+   visible in NimbleBrain. Do not promise an embedded screen when the client cannot render one.
 6. **Finish** as in step 12 below, including the conflict lines from step 1.
 
 What the person does: paste one command (or one line), answer **Yes** once, answer the key question,

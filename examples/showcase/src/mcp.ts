@@ -188,6 +188,7 @@ export function createShowcaseServer(state: ShowcaseState): McpServer {
         "The setup checklist: each step with its status, note, the NimbleBrain call that makes the change (via) and the panel it shows; plus the current step and the panel on screen. Call it first, and again whenever you need the state.",
       inputSchema: z.object({}),
       annotations: { readOnlyHint: true },
+      _meta: { ui: { resourceUri: pageUri("app") } },
     },
     async () => result({ ...setup.view() }),
   );
