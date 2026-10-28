@@ -35,6 +35,8 @@ let app = null;
 let panel = PAGE === "app" ? "setup" : PAGE;
 let tourData = null;
 let setupData = null;
+let tourIndex = null;
+let moreOpen = false;
 let notices = 0;
 const callLog = [];
 const tableView = { sort: "created", direction: "asc", tag: "", status: "", offset: 0 };
@@ -99,43 +101,39 @@ function errorLine(error) {
 async function renderTour() {
   tourData = tourData ?? (await call("start_tour"));
   const done = new Set(tourData.done);
-  const steps = tourData.steps.map((step, index) =>
-    h(
-      "li",
-      { class: `step${done.has(step.id) ? " done" : ""}` },
-      h("input", {
-        type: "checkbox",
-        "aria-label": `Mark "${step.title}" done`,
-        checked: done.has(step.id),
-        onchange: async (event) => {
-          const progress = await call("save_tour_step", {
-            step: step.id,
-            done: event.target.checked,
-          });
-          tourData = { ...tourData, ...progress };
-          render();
-        },
-      }),
-      h("strong", { class: "step-title" }, `${index + 1}. ${step.title}`),
-      step.panel === "tour"
-        ? h("span")
-        : h("button", { onclick: () => openPanel(step.panel) }, "Open"),
-      h("p", {}, step.try),
-      h("details", { class: "dev" }, h("summary", {}, "How it works"), h("p", {}, step.shows)),
-    ),
-  );
-  const next = tourData.next;
+  tourIndex ??= Math.max(0, tourData.steps.findIndex((step) => !done.has(step.id)));
+  const step = tourData.steps[tourIndex];
+  const selectStep = (index) => { tourIndex = index; render(); };
+  const advance = async () => {
+    try {
+      const progress = await call("save_tour_step", { step: step.id, done: true });
+      tourData = { ...tourData, ...progress };
+      tourIndex = Math.min(tourIndex + 1, tourData.steps.length - 1);
+      render();
+    } catch (error) { alertLine(error); }
+  };
   return h(
     "div",
-    { class: "stack" },
-    h("h1", {}, "NimbleBrain showcase tour"),
-    h(
-      "p",
-      { class: "muted" },
-      `${done.size} of ${tourData.steps.length} done.`,
-      next ? ` Next: ${next.title}.` : " All done.",
+    { class: "stack tour" },
+    h("p", { class: "muted" }, `Step ${tourIndex + 1} of ${tourData.steps.length}`),
+    h("h1", {}, step.title),
+    h("p", {}, step.try),
+    h("div", { class: "row" },
+      step.panel !== "tour"
+        ? h("button", { class: "primary", onclick: () => openPanel(step.panel) }, "Open example")
+        : null,
+      h("button", { class: step.panel === "tour" ? "primary" : "", onclick: advance },
+        tourIndex < tourData.steps.length - 1 ? "Done & next" : done.has(step.id) ? "Completed" : "Finish tour"),
+      tourIndex < tourData.steps.length - 1
+        ? h("button", { onclick: () => selectStep(tourIndex + 1) }, "Skip for now") : null,
     ),
-    h("ol", { class: "steps" }, steps),
+    dev(h("p", {}, step.shows)),
+    h("details", {}, h("summary", {}, "Choose a step"),
+      h("div", { class: "step-choices" }, tourData.steps.map((item, index) =>
+        h("button", { "aria-current": index === tourIndex ? "step" : false, onclick: () => selectStep(index) },
+          `${done.has(item.id) ? "✓ " : ""}${index + 1}. ${item.title}`),
+      )),
+    ),
   );
 }
 
@@ -154,47 +152,46 @@ async function renderSetup() {
   const openHostPage = (path) => app.openLink(new URL(path, origin).href);
   const workspace = app.hostContext?.workspace?.id;
   const progress = data.steps.filter((step) => step.status !== "pending");
+  const choices = h("div", { id: "welcome-more", class: "stack welcome-more", hidden: !moreOpen },
+    origin
+      ? h("button", { onclick: () => openHostPage("/profile/general") }, "Preferences")
+      : h("p", { class: "muted" }, "Preferences: NimbleBrain → Profile → General"),
+    h("div", { class: "row" }, PANELS.filter((p) => !["setup", "tour", "board"].includes(p.id)).map((p) =>
+      h("button", { onclick: () => openPanel(p.id) }, p.label),
+    )),
+    progress.length ? h("details", {}, h("summary", {}, "Your progress"),
+      h("ul", {}, progress.map((step) =>
+        h("li", {}, `${step.title}: ${STATUS_WORD[step.status]}`, step.note ? ` · ${step.note}` : ""),
+      )),
+    ) : null,
+    logBox,
+  );
+  const choice = (label, icon, action, primary = false) => h("button", {
+    class: `welcome-choice${primary ? " primary" : ""}`, onclick: action,
+  }, h("span", { class: "choice-icon", "aria-hidden": "true" }, icon), h("span", {}, label));
   return h(
     "div",
     { class: "stack welcome" },
-    h("h1", {}, "Make yourself at home"),
-    h("p", {}, "Try the sample board, take a tour, or work with your coding agent. Go at your own pace."),
+    h("h1", {}, "What would you like to try?"),
     h(
       "div",
-      { class: "row" },
-      h("button", { class: "primary", onclick: () => openPanel("board") }, "Try the board"),
-      h("button", { onclick: () => openPanel("tour") }, "Take the tour"),
+      { class: "welcome-choices" },
+      choice("Try the board", "▤", () => openPanel("board"), true),
+      choice("Take the tour", "→", () => openPanel("tour")),
       origin && typeof workspace === "string" && workspace.startsWith("ws_")
-        ? h("button", { onclick: () => openHostPage(`/w/${encodeURIComponent(workspace.slice(3))}/app/glassengine`) }, "Open GlassEngine")
+        ? choice("Open GlassEngine", "◇", () => openHostPage(`/w/${encodeURIComponent(workspace.slice(3))}/app/glassengine`))
         : null,
     ),
-    h(
-      "details",
-      { class: "box" },
-      h("summary", {}, "Personalize whenever you want"),
-      h("p", {}, "Keep your current settings, or choose a time zone, model and theme. None of this is needed to get started."),
-      origin
-        ? h("button", { onclick: () => openHostPage("/profile/general") }, "Open preferences")
-        : h("p", { class: "muted" }, "Preferences are in NimbleBrain: Profile → General."),
-    ),
-    progress.length
-      ? h(
-          "details",
-          { class: "box" },
-          h("summary", {}, "Your progress"),
-          h("ul", {}, progress.map((step) =>
-            h("li", {}, `${step.title}: ${STATUS_WORD[step.status]}`, step.note ? ` · ${step.note}` : ""),
-          )),
-        )
-      : null,
-    h(
-      "details",
-      { class: "box" },
-      h("summary", {}, "Explore the examples"),
-      h("div", { class: "row" }, PANELS.filter((p) => p.id !== "setup").map((p) =>
-        h("button", { onclick: () => openPanel(p.id) }, p.label),
-      )),
-    ),
+    h("button", {
+      class: "more-button", "aria-expanded": String(moreOpen), "aria-controls": "welcome-more",
+      onclick: (event) => {
+        moreOpen = !moreOpen;
+        choices.hidden = !moreOpen;
+        event.currentTarget.setAttribute("aria-expanded", String(moreOpen));
+        event.currentTarget.textContent = moreOpen ? "Less" : "More options";
+      },
+    }, moreOpen ? "Less" : "More options"),
+    choices,
   );
 }
 
@@ -258,17 +255,14 @@ async function renderBoard() {
     "div",
     { class: "stack" },
     h("h1", {}, "Board"),
-    h(
-      "p",
-      { class: "muted" },
-      "Ask the chat to add or move a card: it shows up here right away.",
-    ),
+    h("p", { class: "muted" }, "Move a card with the arrow buttons."),
     h(
       "div",
       { class: "row" },
-      title,
-      tag,
-      h("button", { class: "primary", type: "button", onclick: add }, "Add"),
+      h("button", { class: "primary", onclick: () => call("add_card", { title: "Try a new idea", tag: "design" }).catch(alertLine) }, "Add a sample card"),
+      h("details", {}, h("summary", {}, "Write your own"),
+        h("div", { class: "row" }, title, tag, h("button", { type: "button", onclick: add }, "Add")),
+      ),
     ),
     h("div", { class: "columns" }, columns),
   );
@@ -678,7 +672,9 @@ async function render() {
         )
       : null;
   renderLog();
-  root.replaceChildren(...[tabs, bar, body, logBox].filter(Boolean));
+  const tourReturn = PAGE === "app" && tourIndex !== null && !["setup", "tour"].includes(panel)
+    ? h("button", { class: "tour-return", onclick: () => openPanel("tour") }, "Continue tour") : null;
+  root.replaceChildren(...[tabs, bar, tourReturn, body, panel === "setup" ? null : logBox].filter(Boolean));
   app.updateModelContext(
     { page: PAGE, panel },
     `The person is looking at the showcase ${panel} panel.`,

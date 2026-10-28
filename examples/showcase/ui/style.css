@@ -140,29 +140,6 @@ code {
   padding-top: 6px;
 }
 
-.steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.step {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 4px 10px;
-  align-items: start;
-}
-.step.done .step-title {
-  text-decoration: line-through;
-  color: var(--color-text-secondary, #6b6b70);
-}
-.step p {
-  margin: 0;
-  grid-column: 2 / 3;
-}
-
 .columns {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -237,12 +214,70 @@ th button {
   border: 1px solid var(--color-border-primary, #d0d0d5);
   border-radius: var(--border-radius-sm, 6px);
 }
-.welcome button {
+.welcome,
+.tour {
+  width: 100%;
+  max-width: 680px;
+  margin: 32px auto;
+  gap: 24px;
+}
+.welcome h1 {
+  text-align: center;
+  font-size: 24px;
+}
+.welcome button,
+.tour button,
+.tour-return {
   min-height: 44px;
 }
-.welcome summary {
-  min-height: 32px;
+.welcome-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+.welcome .welcome-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 144px;
+  padding: 20px 12px;
+  border-radius: var(--border-radius-lg, 12px);
+  font-weight: 600;
+}
+.choice-icon {
+  font-size: 30px;
+  line-height: 1;
+}
+.more-button,
+.tour-return {
+  align-self: center;
+}
+.welcome-more {
+  border-top: 1px solid var(--color-border-primary, #d0d0d5);
+  padding-top: 16px;
+}
+[hidden] {
+  display: none !important;
+}
+.tour p {
+  margin: 0;
+}
+.step-choices {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+.step-choices button {
+  text-align: left;
+}
+.step-choices [aria-current="step"] {
+  border-color: var(--color-text-accent, #3b5bdb);
+}
+summary {
   cursor: pointer;
+  padding-block: 8px;
 }
 .welcome details[open] > summary {
   margin-bottom: 8px;
@@ -253,7 +288,4 @@ th button {
 }
 .dev > summary {
   cursor: pointer;
-}
-.step > details {
-  grid-column: 2 / 4;
 }

@@ -17,9 +17,9 @@ export interface TourStep {
 export const TOUR: readonly TourStep[] = [
   {
     id: "welcome",
-    title: "An app is an MCP server",
+    title: "Take a look around",
     panel: "tour",
-    try: "Read this list. Each step opens a panel; mark it done when you have tried it.",
+    try: "Try one example at a time. Skip anything and come back whenever you want.",
     shows:
       "This page is a ui:// resource served by a small MCP server on your machine. NimbleBrain connected to it as a connector and renders the page in a sandboxed frame.",
     tools: ["start_tour", "save_tour_step"],
