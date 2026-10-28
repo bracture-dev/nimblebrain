@@ -6,6 +6,7 @@ import {
   ConnectionRevalidator,
   revalidatorIntervalMsFromEnv,
 } from "../connectors/runtime/connection-revalidator.ts";
+import { DevIdentityProvider } from "../identity/providers/dev.ts";
 import { canonicalOrigins, webOrigin } from "../oauth/public-origin.ts";
 import { shutdownTracing } from "../observability/index.ts";
 import { log } from "../observability/log.ts";
@@ -23,7 +24,7 @@ import {
   HOOK_BUCKET_WINDOW_MS,
   HOOK_WORKSPACE_BUCKET_MAX,
 } from "./routes/hooks.ts";
-import type { AppContext } from "./types.ts";
+import { type AppContext, apiError } from "./types.ts";
 
 export interface ServerOptions {
   runtime: Runtime;
@@ -74,6 +75,9 @@ export function startServer(options: ServerOptions): ServerHandle {
   // is. A runtime always has one: `Runtime.start` refuses a workdir without
   // `instance.json`.
   const provider = runtime.getIdentityProvider();
+  // Use the actual provider: an in-process caller can override instance.json.
+  // Dev admits every caller, so its listener and Host stay local.
+  const localDev = provider instanceof DevIdentityProvider;
 
   // Effective CORS allowlist = operator-declared extras (ALLOWED_ORIGINS) ∪ the
   // canonical hosts (custom domain + platform subdomain). Folding the canonical
@@ -232,8 +236,19 @@ export function startServer(options: ServerOptions): ServerHandle {
 
   const server = Bun.serve({
     port,
+    ...(localDev ? { hostname: "127.0.0.1" } : {}),
     idleTimeout: 255, // seconds — max Bun allows; needed for SSE streams and long chat requests
-    fetch: app.fetch,
+    fetch(request, server) {
+      // Check before every route, including preflights and requests without
+      // Origin. A foreign hostname can resolve to loopback through DNS rebinding.
+      if (
+        localDev &&
+        !/^(?:localhost|127\.0\.0\.1|\[::1\])(?::[0-9]+)?$/i.test(request.headers.get("host") ?? "")
+      ) {
+        return apiError(403, "untrusted_host", "Local development requires a loopback Host");
+      }
+      return app.fetch(request, server);
+    },
   });
 
   return {
