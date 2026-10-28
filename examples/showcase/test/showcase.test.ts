@@ -128,7 +128,7 @@ describe("setup", () => {
       note: "Europe/Lisbon",
     });
     expect(setup.skip("model", "no key yet").skipped).toBe(1);
-    expect(() => setup.skip("name")).toThrow("not optional");
+    expect(setup.skip("name", "keep existing").skipped).toBe(2);
     expect(() => setup.start("nope")).toThrow("get_setup_checklist");
   });
 
@@ -217,8 +217,8 @@ describe("MCP server setup tools", () => {
       panel: "bridge",
       moved: true,
     });
-    expect((await call("skip_setup_step", { step: "name" })).isError).toBe(true);
-    expect(changes).toBe(4);
+    expect((await call("skip_setup_step", { step: "name" })).structuredContent.skipped).toBe(1);
+    expect(changes).toBe(5);
   });
 });
 

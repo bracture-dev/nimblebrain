@@ -204,10 +204,10 @@ main() {
   local source_note=" Use the existing checkout at ${NB_DIR:-$HOME/nimblebrain}."
   if [ "$agent" = claude ]; then
     # The plugin's own local tools (GlassEngine and the showcase) run without a prompt each time.
-    set -- claude "NimbleBrain is set up. Join GlassEngine as claude and keep answering. Offer the optional provider key step from /nimblebrain:setup; the person can choose Later.${source_note}" \
+    set -- claude "Local services are running. Follow nimblebrain-setup: verify the connectors, join or reuse this session in GlassEngine as claude, then report ready and keep answering. Ask before taking another session's tab. Provider keys, preferences and the tour are optional afterward, only on request.${source_note}" \
       --allowedTools "mcp__plugin_nimblebrain_glassengine__*" "mcp__plugin_nimblebrain_showcase__*"
   else
-    set -- codex "NimbleBrain is set up. Use the nimblebrain-setup skill to join GlassEngine as codex and keep answering. Offer the optional provider key step; the person can choose Later.${source_note}"
+    set -- codex "Local services are running. Follow nimblebrain-setup: verify the connectors, join or reuse this session in GlassEngine as codex, then report ready and keep answering. Ask before taking another session's tab. Provider keys, preferences and the tour are optional afterward, only on request.${source_note}"
   fi
 
   if [ -n "${NB_NO_LAUNCH:-}" ] || ! ( : </dev/tty ) 2>/dev/null; then

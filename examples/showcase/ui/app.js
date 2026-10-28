@@ -7,7 +7,7 @@ const PAGE = document.querySelector('meta[name="showcase-page"]')?.content ?? "a
 const PANELS = [
   {
     id: "setup",
-    label: "Setup",
+    label: "Welcome",
     tools: [
       "get_setup_checklist",
       "start_setup_step",
@@ -140,81 +140,61 @@ async function renderTour() {
 }
 
 const STATUS_WORD = { pending: "Not started", in_progress: "In progress", done: "Done", skipped: "Skipped" };
-const STATUS_MARK = { pending: "[ ]", in_progress: "[>]", done: "[x]", skipped: "[-]" };
-
 async function renderSetup() {
   setupData = setupData ?? (await call("get_setup_checklist"));
   const data = setupData;
-  // Every control below calls a tool, then the screen re-reads the checklist.
-  const write = async (name, args = {}) => {
+  // Use the host's existing preference controls. A checklist button cannot save a preference.
+  let origin = null;
+  if (app.hostInfo?.name === "nimblebrain" && app.hostContext?.origin) {
     try {
-      setupData = await call(name, args);
-    } catch (error) {
-      setupData = null;
-      alertLine(error);
-      return;
-    }
-    render();
-  };
-  const note = h("input", {
-    placeholder: "Add a note (optional)",
-    maxlength: 280,
-    "aria-label": "Note for the step in progress",
-  });
-  const rows = data.steps.map((step) => {
-    const active = step.status === "in_progress";
-    return h(
-      "li",
-      { class: `step ${step.status}` },
-      h("span", { class: "mark", title: STATUS_WORD[step.status] }, STATUS_MARK[step.status]),
-      h("strong", { class: "step-title" }, step.title, step.optional ? " (optional)" : ""),
-      h(
-        "span",
-        { class: "row" },
-        step.status === "pending" || step.status === "skipped"
-          ? h("button", { onclick: () => write("start_setup_step", { step: step.id }) }, "Start")
-          : null,
-        active
-          ? h(
-              "button",
-              {
-                class: "primary",
-                onclick: () => write("complete_setup_step", { step: step.id, note: note.value }),
-              },
-              "Done",
-            )
-          : null,
-        active && step.optional
-          ? h(
-              "button",
-              { onclick: () => write("skip_setup_step", { step: step.id, note: note.value }) },
-              "Skip",
-            )
-          : null,
-      ),
-      h("p", {}, step.blurb),
-      step.note ? h("p", { class: "muted" }, step.note) : null,
-      active ? note : null,
-    );
-  });
+      const url = new URL(app.hostContext.origin);
+      if (url.protocol === "http:" || url.protocol === "https:") origin = url.origin;
+    } catch { /* An external host need not provide a NimbleBrain origin. */ }
+  }
+  const openHostPage = (path) => app.openLink(new URL(path, origin).href);
+  const workspace = app.hostContext?.workspace?.id;
+  const progress = data.steps.filter((step) => step.status !== "pending");
   return h(
     "div",
-    { class: "stack" },
-    h("h1", {}, "Setup"),
-    h(
-      "p",
-      { class: "muted" },
-      `${data.done} of ${data.total} done${data.skipped ? `, ${data.skipped} skipped` : ""}.`,
-      data.current ? ` Now: ${data.current.title}.` : " All finished.",
-    ),
+    { class: "stack welcome" },
+    h("h1", {}, "Make yourself at home"),
+    h("p", {}, "Try the sample board, take a tour, or work with your coding agent. Go at your own pace."),
     h(
       "div",
       { class: "row" },
-      h("button", { onclick: () => write("next_panel") }, "Next panel"),
-      h("button", { onclick: () => write("reset_setup") }, "Start over"),
+      h("button", { class: "primary", onclick: () => openPanel("board") }, "Try the board"),
+      h("button", { onclick: () => openPanel("tour") }, "Take the tour"),
+      origin && typeof workspace === "string" && workspace.startsWith("ws_")
+        ? h("button", { onclick: () => openHostPage(`/w/${encodeURIComponent(workspace.slice(3))}/app/glassengine`) }, "Open GlassEngine")
+        : null,
     ),
-    h("ol", { class: "steps" }, rows),
-    h("p", { class: "muted" }, "Your agent can work through this list with you, or you can press the buttons yourself."),
+    h(
+      "details",
+      { class: "box" },
+      h("summary", {}, "Personalize whenever you want"),
+      h("p", {}, "Keep your current settings, or choose a time zone, model and theme. None of this is needed to get started."),
+      origin
+        ? h("button", { onclick: () => openHostPage("/profile/general") }, "Open preferences")
+        : h("p", { class: "muted" }, "Preferences are in NimbleBrain: Profile → General."),
+    ),
+    progress.length
+      ? h(
+          "details",
+          { class: "box" },
+          h("summary", {}, "Your progress"),
+          h("ul", {}, progress.map((step) =>
+            h("li", {}, `${step.title}: ${STATUS_WORD[step.status]}`, step.note ? ` · ${step.note}` : ""),
+          )),
+        )
+      : null,
+    h(
+      "details",
+      { class: "box" },
+      h("summary", {}, "Explore the examples"),
+      h("div", { class: "row" }, PANELS.filter((p) => p.id !== "setup").map((p) =>
+        h("button", { onclick: () => openPanel(p.id) }, p.label),
+      )),
+    ),
   );
 }
 
@@ -612,7 +592,10 @@ async function openPanel(id) {
       alertLine(error);
       return;
     }
-    render();
+    await render();
+    const heading = root.querySelector("h1");
+    heading?.setAttribute("tabindex", "-1");
+    heading?.focus();
   } else {
     // A single-panel page (in a chat answer, say) opens the full app instead.
     Synapse.open(app, "ui://showcase/app").catch(alertLine);
@@ -656,7 +639,7 @@ async function render() {
   }
   if (ticket !== rendering) return; // A newer render started while this one waited.
   const tabs =
-    PAGE === "app"
+    PAGE === "app" && panel !== "setup"
       ? h(
           "nav",
           { class: "tabs", "aria-label": "Showcase panels" },
@@ -691,7 +674,7 @@ async function render() {
             },
             "Done",
           ),
-          h("button", { onclick: () => openPanel("setup") }, "Back to setup"),
+          h("button", { onclick: () => openPanel("setup") }, "Back to welcome"),
         )
       : null;
   renderLog();

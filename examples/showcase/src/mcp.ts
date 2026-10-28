@@ -27,7 +27,7 @@ export const PLACEMENTS = [
 
 const INSTRUCTIONS =
   "Showcase: a guided tour of what NimbleBrain does with an MCP App, over a sample task board. " +
-  "When the person asks to start, open or continue the tour, call start_tour. To set the person up, call get_setup_checklist and follow it with the setup tools.";
+  "Bootstrap finishes before personalization or exploration. When the person chooses the tour, call start_tour. For optional personalization, call get_setup_checklist and follow only the steps they choose. Use clickable choices; all steps can wait.";
 
 /** A tool that changes the board. */
 const WRITES = { readOnlyHint: false } as const;
@@ -185,7 +185,7 @@ export function createShowcaseServer(state: ShowcaseState): McpServer {
     {
       title: "Get the setup checklist",
       description:
-        "The setup checklist: each step with its status, note, the NimbleBrain call that makes the change (via) and the panel it shows; plus the current step and the panel on screen. Call it first, and again whenever you need the state.",
+        "Open the welcome screen and read optional personalization and exploration progress. Every step can wait until after bootstrap. Each includes its status, note, the NimbleBrain call that makes the change (via) and its panel. Read before continuing a step the person chose.",
       inputSchema: z.object({}),
       annotations: { readOnlyHint: true },
       _meta: { ui: { resourceUri: pageUri("app") } },
@@ -234,7 +234,7 @@ export function createShowcaseServer(state: ShowcaseState): McpServer {
     {
       title: "Skip a setup step",
       description:
-        "Skip an optional step (model, glassengine), with a note saying why. Required steps cannot be skipped.",
+        "Leave a personalization or exploration step for later, with an optional note. All current steps are optional; bootstrap does not depend on them.",
       inputSchema: z.object({ step: stepId, note: z.string().max(280).optional() }),
       annotations: { ...WRITES, idempotentHint: true },
     },

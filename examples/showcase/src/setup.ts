@@ -1,4 +1,4 @@
-// The setup checklist: what a newcomer personalizes, one step per tool-visible action. The
+// Optional personalization after bootstrap, one step per tool-visible action. The
 // showcase only tracks and shows progress; NimbleBrain's own tools make the changes (the `via`
 // field names the call). The checklist also holds which panel the app is showing, so an agent can
 // move the person around the app with a tool and the screen follows.
@@ -60,36 +60,36 @@ export const SETUP_STEPS: readonly SetupStep[] = [
     id: "name",
     title: "Your name",
     blurb: "What should NimbleBrain call you?",
-    instruction: "Ask the person what NimbleBrain should call them, then save it.",
+    instruction: "Offer to keep the existing name or change it. Ask for text only if they choose to change it, then save it.",
     via: 'nb__set_preferences {"displayName": "<name>"}',
     panel: "setup",
-    optional: false,
+    optional: true,
   },
   {
     id: "timezone",
     title: "Time zone",
     blurb: "Where are you, so times show up right?",
     instruction:
-      "Ask where the person is, pick the matching IANA timezone, confirm it with them, then save it.",
+      "Offer to keep the existing timezone or choose one in Profile → General. Use a short list of likely zones if guiding them with native questions; save only their chosen IANA timezone.",
     via: 'nb__set_preferences {"timezone": "<Area/City>"}',
     panel: "setup",
-    optional: false,
+    optional: true,
   },
   {
     id: "theme",
     title: "Light or dark",
     blurb: "Pick how NimbleBrain looks.",
-    instruction: "Ask for light, dark or system. The whole app changes at once when you save it.",
+    instruction: "Offer clickable Light, Dark and System choices in the client's native question tool, or open Profile → General. Save only their choice.",
     via: 'nb__set_preferences {"theme": "light" | "dark" | "system"}',
     panel: "setup",
-    optional: false,
+    optional: true,
   },
   {
     id: "model",
     title: "Your model",
     blurb: "Choose which AI model answers you. You can skip this for now.",
     instruction:
-      "Ask which model the person wants for new conversations, as provider:model-id. If NimbleBrain refuses it, its message names the configured providers; tell the person and ask again. Skip the step if no provider key is set up yet.",
+      "Offer to keep the current model or open Profile → General, which lists available models. Do not ask the person to type a provider:model-id. Skip if they want to choose later or have no provider key yet.",
     via: 'nb__set_preferences {"model": "<provider:model-id>"}',
     panel: "setup",
     optional: true,
@@ -109,10 +109,10 @@ export const SETUP_STEPS: readonly SetupStep[] = [
       id: `look-${panel}`,
       title: `Take a look: ${LOOK_LABEL[panel]}`,
       blurb: LOOK_BLURB[panel],
-      instruction: `Show the ${panel} panel with show_panel, say in a sentence what it demonstrates, and mark the step done when the person has seen it.`,
+      instruction: `Only when the person wants to explore: show the ${panel} panel with show_panel, say in a sentence what it demonstrates, and mark the step done when the person has seen it.`,
       via: "",
       panel,
-      optional: false,
+      optional: true,
     }),
   ),
 ];

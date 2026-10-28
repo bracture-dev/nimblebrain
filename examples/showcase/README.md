@@ -10,7 +10,7 @@ the same work. When you want to build your own app, copy this folder.
 
 | Panel | What it shows | Tools it calls |
 |---|---|---|
-| Setup | A checklist your agent works through while you watch: name, timezone, theme, model, GlassEngine, then a first look at each panel | `get_setup_checklist`, `start_setup_step`, `complete_setup_step`, `skip_setup_step`, `show_panel`, `next_panel`, `reset_setup` |
+| Setup | A welcome page with choices to try the board, take the tour or open optional preferences | `get_setup_checklist`, `start_setup_step`, `complete_setup_step`, `skip_setup_step`, `show_panel`, `next_panel`, `reset_setup` |
 | Tour | Ten steps through the panels below, with saved progress | `start_tour`, `save_tour_step` |
 | Board | A task board behind tools. When the agent moves a card, the screen updates at once | `list_cards`, `add_card`, `move_card` |
 | Table | Sorting, filtering and paging, all as arguments to one read tool | `list_cards` |
@@ -21,10 +21,11 @@ the same work. When you want to build your own app, copy this folder.
 
 The board holds made-up sample cards, kept in memory. Restart the server or call `reset_board` to get
 the starting cards back. The showcase never calls a model, so every panel works without a provider
-key. Asking the chat to change the board does need one.
+key. NimbleBrain's own chat needs a provider key; your connected coding agent can use the same
+tools without adding one to NimbleBrain.
 
 `get_setup_checklist` also opens this app inside coding clients that render MCP Apps. Terminal
-clients use their own questions while the same checklist stays visible in NimbleBrain.
+clients use native questions for any choices you request, with the app visible in NimbleBrain.
 
 ## How it fits
 
@@ -150,31 +151,25 @@ The page NimbleBrain shows in the sidebar comes from the same server:
 curl -s "http://localhost:27247/v1/workspaces/$WS/apps/showcase/resources/app" | head -c 300
 ```
 
-## Let your agent set you up
+## Ready, then choose what to try
 
-The Setup panel is a twelve-step checklist. Your agent works through it while you watch. Each step
-is a tool with an effect you can see, and every button on screen calls the same tool, so you can
-take over at any point. The showcase only records progress and moves the screen. NimbleBrain's own
-tools make the changes.
+Local bootstrap is complete when NimbleBrain, the showcase and GlassEngine are running, the
+connectors work, and the current Claude Code or Codex session has joined GlassEngine. The target
+is 90 seconds with prerequisites and network ready; downloads, approvals or a session reload can
+take longer. It requires no provider key, personalization, tour or typed setup command.
 
-| Step | What your agent does | NimbleBrain call |
-|---|---|---|
-| name, timezone, theme | Asks you, then saves it. A new theme applies at once | `nb__set_preferences` |
-| model (optional) | Asks which model new conversations use | `nb__set_preferences` with `model` |
-| glassengine (optional) | Asks whether to show your own agent in a tab | a second connector |
-| first look, seven steps | Opens each panel and says what it shows | `show_panel`, `next_panel` |
+From the welcome page, choose **Try the board** or **Take the tour**. Preferences and conversations
+are optional too. NimbleBrain's **Profile → General** page provides timezone and model selectors,
+three theme buttons and a name field. Keep your current settings or change only what you want.
+The setup skill's [optional key procedure](../../.agents/skills/nimblebrain-setup/SKILL.md#optional-after-bootstrap)
+is available later if you want NimbleBrain's own chat.
 
-Connect your agent to the workspace endpoint, `http://localhost:27247/mcp/<wsId>` (use your own
-port), and tell it: "set up NimbleBrain with the showcase". The setup skill's
-[connect-agents page](../../.agents/skills/nimblebrain-setup/references/connect-agents.md) has the
-exact command for Claude Code and Codex. NimbleBrain's agent runs the same checklist when you say
-"set me up" in the chat. For each step, the agent:
-
-1. Calls `showcase__get_setup_checklist` for the steps, their status and the call to make.
-2. Calls `showcase__start_setup_step`. The step turns "in progress" and its panel opens.
-3. Makes the change, for example `nb__set_preferences {"timezone": "Europe/Lisbon"}`.
-4. Calls `showcase__complete_setup_step` with a short note, or `showcase__skip_setup_step` for an
-   optional step. Notes show on screen, so they never hold keys or secrets.
+If you ask your agent for guided personalization, it reads `get_setup_checklist`, starts only the
+step you chose, and uses NimbleBrain's `nb__set_preferences` to make the change. It calls
+`complete_setup_step` only after a successful change, or `skip_setup_step` when you skip one.
+The showcase records progress and moves the screen; it does not save your preferences. Notes
+appear on screen and must never contain secrets. An existing GlassEngine connection is reused;
+taking another session's tab requires your choice.
 
 Any MCP client works. To make a raw call, take the request in "Check it from a terminal" and swap in
 `tools/call` with `{"name": "showcase__start_setup_step", "arguments": {"step": "name"}}`.
@@ -183,9 +178,8 @@ checklist and leaves your NimbleBrain settings alone.
 
 ## Start the tour
 
-Ask the chat to "start the showcase tour". The agent calls `start_tour`, and the tour appears in its
-answer. Without a provider key, open **Showcase** from the sidebar instead; the Setup panel comes
-first.
+Choose **Take the tour** in Showcase. You can also ask your coding agent to start it with
+`start_tour`. The tour and board work without a provider key.
 
 ## How it is built
 

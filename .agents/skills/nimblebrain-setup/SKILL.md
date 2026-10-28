@@ -1,22 +1,16 @@
 ---
 name: nimblebrain-setup
-description: Install and run NimbleBrain locally from source with its two example apps (the showcase and GlassEngine), all connected, connect the person's coding agent to all three, and hand the rest of setup to that agent working visibly in GlassEngine. Safe to run again on an existing install. Use when someone asks to set up, install, run, try or get started with NimbleBrain locally, or to connect their own agent to a local NimbleBrain.
+description: Use when someone asks to install, run or get started with NimbleBrain locally, or connect Claude Code or Codex to a local NimbleBrain. Safe to run again on an existing install.
 license: Apache-2.0
 compatibility: Tested on macOS with Claude Code and Codex. Needs git, Bun (the version pinned in package.json), Node.js 22+ and curl. Linux, Windows and other agents are next steps, not tested.
 ---
 
 # NimbleBrain local setup
 
-This skill gets NimbleBrain running on the person's own machine. You install it, start two example
-apps, and connect the person's coding agent to them. Then you hand over. The person's agent
-finishes setup inside NimbleBrain, on screen, while they watch.
-
-```mermaid
-flowchart LR
-  A["One command<br/>or one pasted line"] --> B["One plan,<br/>one yes"]
-  B --> C["setup.sh<br/>NimbleBrain, showcase,<br/>GlassEngine, connected"]
-  C --> D["The agent joins GlassEngine<br/>and runs setup on screen"]
-```
+Bootstrap ends when NimbleBrain, the showcase and GlassEngine are running, their connectors work,
+and the current Claude Code or Codex session has joined GlassEngine. Aim for 90 seconds when the
+prerequisites and network are ready; downloads, approvals and session reloads can take longer.
+Provider keys, preferences, the tour and chatting in GlassEngine are voluntary afterward.
 
 Every address you use below is `127.0.0.1` or `localhost`. Work in the
 open. Say what you are about to run, run it, and show what happened.
@@ -30,18 +24,19 @@ open. Say what you are about to run, run it, and show what happened.
 
 The terminal command shows the conflict report and plan, asks once, installs the plugin
 (marketplace `nimblebrain`, plugin `nimblebrain`), and runs setup. It starts the agent only after
-NimbleBrain, the showcase and GlassEngine are ready, then asks it to join GlassEngine and offer
-the optional key step.
+NimbleBrain, the showcase and GlassEngine are ready, then asks it to verify the connectors, join
+GlassEngine and report ready.
 
 When you were started from the pasted line instead, install the plugin first, with the same script
 and no launch: `curl -fsSL https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/install.sh | NB_NO_LAUNCH=1 bash`
-(add `-s -- --codex` on Codex; it may need to run outside your sandbox). Then the plugin's tools
-need one thing from the person, which you say in the plan:
+(add `-s -- --codex` on Codex; it may need to run outside your sandbox). Check whether this
+session has loaded the plugin's tools. If it has not, explain the needed refresh in the plan:
 
 - Claude Code: type `/reload-plugins` once setup has finished, which loads the plugin's servers
   into this session.
-- Codex: has no reload. After setup, quit and run `codex resume --last`, which reopens this
-  conversation with the plugin, the feature and the workspace door loaded.
+- Codex: use the client's plugin reload if it offers one, then verify the tools are available.
+  In the CLI, quit and run `codex resume --last` to reopen this conversation with the plugin,
+  the feature and the workspace door loaded.
 
 Find `SCRIPTS` in the copy the agent keeps of the marketplace:
 `claude plugin marketplace list --json` (`installLocation`) or `codex plugin marketplace list --json`
@@ -49,14 +44,15 @@ Find `SCRIPTS` in the copy the agent keeps of the marketplace:
 
 ## Fast path
 
-As few human steps as possible: one plan, one yes. Use the agent's own question tool for each
-question (AskUserQuestion in Claude Code); otherwise ask in plain text with the options listed.
+As few human steps as possible: one plan, one yes. An approved launch already covers that plan.
+For a needed choice, use the agent's native question tool with clickable options (AskUserQuestion
+in Claude Code); otherwise list the options in plain text.
 
 1. **Check, read-only.** Run `bash "$SCRIPTS/check.sh" --agent <claude|codex>` (add any `--dir`,
    `--repo`, `--ref` or port the person or the launch prompt gave). It changes nothing and prints
    every conflict: what it found, what it expected, and what setup will do (reuse, skip or ask).
-2. **One plan, one question.** Show this, with the conflict lines under it, and ask **Go ahead?**
-   with the answers **Yes** and **Change something**:
+2. **Confirm any unapproved work.** Show this with the conflict lines and ask **Go ahead?** with
+   **Yes** and **Change something**, unless the person already approved the same plan:
 
    > I will set up NimbleBrain in `~/nimblebrain` (NimbleBrain on localhost 27270, its API on
    > 27271, the showcase on 27280, GlassEngine on 27281; telemetry off). I install from the
@@ -82,33 +78,40 @@ question (AskUserQuestion in Claude Code); otherwise ask in plain text with the 
    show that line and ask. A second
    run on a finished install says "already set up" and goes straight to the hand-over. It leaves a
    recorded checkout where it is; `--update` fast-forwards it.
-4. **The key, optional.** Ask **Do you have an Anthropic API key?** with **Yes**, **No, help me get
-   one** and **Later**. NimbleBrain's own chat uses it; setup through GlassEngine does not.
-   - Yes: open a private Terminal window running the script, where they paste the key. The path
-     goes in as an argument, never inside the script text:
-     `osascript -e 'on run argv' -e 'tell application "Terminal" to do script "bash " & quoted form of (item 1 of argv) & " --have-key"' -e 'end run' "$SCRIPTS/set-key.sh"`.
-   - No: the same without `--have-key`; it opens the Anthropic Console keys page too.
-   - Later: give them `bash "$SCRIPTS/set-key.sh"` to run in their own terminal any time.
+4. **Connect this session.** Open the `GlassEngine:` URL printed by `setup.sh`, then join as
+   `claude` or `codex` with the plugin's tools and keep answering. Reuse this session's existing
+   join; ask before taking a tab held by another session. Verify both connectors and the workspace
+   connection. If tools need a reload, follow the client-specific step above and finish the join
+   after it; do not call the bootstrap ready before then.
+5. **Ready.** Give the short summary in step 12. The person can use the Showcase buttons to try
+   the board or take the tour, open Profile → General for preferences, or talk in GlassEngine.
+   No provider-key question, checklist or typed setup command is needed to finish bootstrap.
 
-   Both commands need to run outside your sandbox. If they cannot run, print the command for the
-   person to run in their own terminal. Tell them never to paste the key into this chat. Check with
-   `bash "$SCRIPTS/set-key.sh" --check`, which reads only whether it is saved. When it says yes,
-   restart NimbleBrain (`stop.sh "$NB_DIR" --keep-examples`, then `start.sh "$NB_DIR"`) so it picks the key up. Until
-   then, the web page may still list Anthropic as a provider; chat will not answer without a key.
-5. **Hand over.** Open GlassEngine for the person with `open <GlassEngine URL>` (the URL is the
-   `GlassEngine:` line `setup.sh` printed; `open` needs to run outside your sandbox). Then join as
-   `claude` or `codex` with this plugin's `glassengine` tools and keep answering. Tell them to type
-   **set me up** in your tab. For NimbleBrain's own tools in this session (for example
-   `nb__set_preferences`), use `bash "$SCRIPTS/nb-tool.sh" --dir "$NB_DIR" <tool> '<json>'`; a new session has them
-   as MCP tools.
-   Call the showcase's `get_setup_checklist` first. It opens the existing setup MCP App in clients
-   that render MCP Apps. In a terminal client, use its native questions and keep the same checklist
-   visible in NimbleBrain. Do not promise an embedded screen when the client cannot render one.
-6. **Finish** as in step 12 below, including the conflict lines from step 1.
+The person pastes one command (or one line), approves the plan and any tool prompts, and reloads
+their session if needed. Claude Code's terminal command allows the plugin's own showcase and
+GlassEngine tools for that session.
 
-What the person does: paste one command (or one line), answer **Yes** once, answer the key question,
-and approve any tool prompts their agent shows. In Claude Code, the terminal command already allows
-the plugin's own showcase and GlassEngine tools for that session.
+## Optional after bootstrap
+
+Continue only when the person chooses it. The Showcase landing offers the board and tour;
+Profile → General has clickable timezone, model and theme choices. Ask for a name only when they
+want to set one. Keep current values unless they choose a change. For guided choices in a terminal,
+use native questions. The showcase's `get_setup_checklist` opens its MCP App in clients that render
+one; do not promise an embedded screen in a terminal client.
+
+**Enable NimbleBrain's own chat.** When requested, ask **Do you have an Anthropic API key?** with
+**Yes**, **Help me get one** and **Later**. The connected coding agent and sample board need no key.
+
+- Yes: open a private Terminal window for the person to paste it, passing the path as an argument:
+  `osascript -e 'on run argv' -e 'tell application "Terminal" to do script "bash " & quoted form of (item 1 of argv) & " --have-key"' -e 'end run' "$SCRIPTS/set-key.sh"`.
+- Help me get one: use the same command without `--have-key`; it also opens the Anthropic Console.
+- Later: leave it alone. They can run `bash "$SCRIPTS/set-key.sh"` in their terminal later.
+
+These commands may need sandbox approval. If unavailable, give the person the command to run.
+Never have them paste a key in chat. Check only `bash "$SCRIPTS/set-key.sh" --check`; after it
+reports a saved key, restart NimbleBrain with `stop.sh "$NB_DIR" --keep-examples`, then
+`start.sh "$NB_DIR"`. On Linux, the script saves it in `.env` with mode 600. A listed provider
+alone does not prove chat has a key.
 
 ## Ground rules
 
@@ -147,15 +150,13 @@ fast path that stopped, or for an agent without the scripts.
 Show this plan, adjusted to what the person asked for, and wait for an OK:
 
 1. Check git, Bun, Node.js and free ports. Offer to install anything missing.
-2. Ask a few choices: folder, ports, model provider, telemetry, which agent to connect.
+2. Confirm any changed folder, ports, telemetry or agent choices.
 3. Clone NimbleBrain, install dependencies from the lockfiles, build the app UIs.
-4. You paste your provider key into `.env` yourself. I never see it.
-5. Start NimbleBrain and check its API, web page and workspace MCP endpoint.
-6. Start the showcase (127.0.0.1:27280) and GlassEngine (127.0.0.1:27281), and add both to your
+4. Start NimbleBrain and check its API, web page and workspace MCP endpoint.
+5. Start the showcase (127.0.0.1:27280) and GlassEngine (127.0.0.1:27281), and add both to your
    workspace as connectors.
-7. Connect your agent to GlassEngine, the showcase and the workspace.
-8. Hand over. Open NimbleBrain next to your agent and say "join GlassEngine as claude and keep
-   answering". Your agent runs the rest of setup through the showcase while you watch.
+6. Connect this agent to GlassEngine, the showcase and the workspace.
+7. Join this session to its GlassEngine tab and report ready. Everything afterward is optional.
 
 ## 2. Prerequisites
 
@@ -184,7 +185,6 @@ with its default, and accept "defaults". Details:
 | Folder for the checkout | `~/nimblebrain` (any real folder, not a symlink) |
 | Route | From source (Docker: [references/docker.md](references/docker.md); no examples there) |
 | Ports, API and web | 27271 and 27270 |
-| Model provider | Anthropic (`ANTHROPIC_API_KEY`). Others need two config lines |
 | Telemetry | Off (`NB_TELEMETRY_DISABLED=1`) |
 | Agent to connect | The one running this skill (Claude Code or Codex) |
 
@@ -203,10 +203,9 @@ bash "$NB_DIR/.agents/skills/nimblebrain-setup/scripts/install.sh" "$NB_DIR"
 ```
 
 `install.sh` installs the root, `web/` and each `src/platform/*/ui` from their lockfiles, with
-install scripts turned off. Then it builds the app UIs. It takes about a minute and writes only
-inside `NB_DIR`.
+install scripts turned off. Then it builds the app UIs inside `NB_DIR`.
 
-## 5. Settings and the key
+## 5. Local settings
 
 Create `$NB_DIR/.env` only if it does not exist (`setup.sh` does this, and on later runs only adds
 missing non-secret lines). If it exists, do not open it. Ask whether it already holds the lines
@@ -223,10 +222,9 @@ NB_TELEMETRY_DISABLED=1
 EOF
 ```
 
-For the key, use step 4 of the fast path (`set-key.sh`, in the person's own Terminal window). On
-Linux, `set-key.sh` writes it into `.env` with mode 600. They may skip it for now. Everything
-except chat inside NimbleBrain still works: NimbleBrain starts, serves the web page, the workspace
-door and connectors without a key.
+For a new `.env`, leave the key empty for bootstrap; preserve any existing key. NimbleBrain serves
+its web page, workspace endpoint and connectors without one. The optional procedure above enables
+its own chat afterward.
 
 ## 6. Start
 
@@ -347,24 +345,11 @@ showcase and GlassEngine entries. The same page shows the raw HTTP shape for any
 
 ## 11. Hand over
 
-If this session already has the GlassEngine tools (the plugin route), the plan's yes covers the
-join. Open `http://localhost:<WEB>/w/<WS without ws_>/app/glassengine` for them with `open`
-(outside your sandbox), then join as `claude` (or `codex`) yourself and keep answering. They type
-**set me up** in your tab.
-
-Otherwise, tell the person, in these words:
-
-1. Open NimbleBrain at `http://localhost:<WEB>` and go to the GlassEngine app.
-2. Open a new Claude Code session (or the desktop Code tab) beside it. Allow the GlassEngine tools
-   once, so the loop runs without prompts.
-3. Say: **join GlassEngine as claude and keep answering** (or run `/nimblebrain:glass-join`).
-   On Codex, say: **join GlassEngine as codex and keep answering**.
-4. Type **set me up** in the Claude (or Codex) tab of GlassEngine.
-
-From here their own agent drives. It works through the showcase's Setup checklist: it asks for a
-name, timezone and theme, saves each one with NimbleBrain's own tools, and opens each panel. Every
-step shows on screen, and the person can press the same buttons. You stop doing terminal work
-unless something fails.
+The approved plan covers this session's join. Open the GlassEngine URL from `setup.sh`, join as
+`claude` or `codex` and keep answering. Reuse an existing join from this session; ask before taking
+another session's tab. If the tools are not loaded, use the reload/resume instructions under
+Two ways in, then finish the join. Report ready once the services, connectors and current session
+are connected. The person can leave it there or choose a board, tour, preferences or conversation.
 
 ## 12. Finish
 

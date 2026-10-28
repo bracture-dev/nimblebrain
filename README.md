@@ -58,10 +58,12 @@ running and connected, and the agent itself connected to all three. Pick one way
 > **What you do**
 > 1. Paste one command, or one line into your agent.
 > 2. Say **Yes** to the plan. It lists anything already on your machine that differs, before it changes anything.
-> 3. Answer **Do you have an Anthropic API key?** Yes, No (it opens the Console for you), or Later.
-> 4. Approve the tool prompts your agent shows. From the session already open: type `/reload-plugins` in Claude Code, or `codex resume --last` in Codex, when it asks.
+> 3. Approve the tool prompts your agent shows. From a session already open: reload plugins in Claude Code, or quit and run `codex resume --last` in Codex, when it asks.
 >
-> Then type **set me up** in your agent's tab in GlassEngine, which opens for you.
+> The agent checks the connections, joins GlassEngine and reports ready. The bootstrap target is
+> 90 seconds with prerequisites and network ready; downloads, approvals or a reload can take longer.
+> Then choose what to try: **Try the board**, **Take the tour**, or **Open GlassEngine**. Preferences
+> and provider keys can wait. There is no required checklist or typed setup request.
 
 The terminal command checks for conflicts and shows the plan first. After your yes, it installs
 the plugin for your agent (Claude Code if you have it, else Codex), starts NimbleBrain and its

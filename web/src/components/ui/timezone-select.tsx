@@ -40,6 +40,7 @@ export function TimezoneSelect({ value, onChange }: TimezoneSelectProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const deviceTimezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   const filtered = useMemo(() => {
     if (!search) return IANA_TIMEZONES;
@@ -105,6 +106,18 @@ export function TimezoneSelect({ value, onChange }: TimezoneSelectProps) {
       {/* Dropdown */}
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-sm border border-border bg-card shadow-lg animate-in fade-in-0 zoom-in-95 duration-100">
+          {deviceTimezone && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange(deviceTimezone);
+                setOpen(false);
+              }}
+              className="w-full border-b border-border px-3 py-2 text-left text-sm hover:bg-muted"
+            >
+              Use this device’s time zone ({deviceTimezone.replace(/_/g, " ")})
+            </button>
+          )}
           {/* Search */}
           <div className="p-2 border-b border-border">
             <input
