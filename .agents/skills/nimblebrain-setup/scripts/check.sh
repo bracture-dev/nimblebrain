@@ -33,7 +33,6 @@ report() { # found, expected, action
 have() { command -v "$1" >/dev/null 2>&1; }
 
 case "$repo" in /* | ./* | ../* | "~"* | *://* | git@*) url=$repo ;; *) url="https://github.com/$repo.git" ;; esac
-norm() { local u=${1%/}; u=${u%.git}; [ -d "$u" ] && u=$(cd "$u" && pwd -P); echo "$u"; }
 work="$dir/.nimblebrain-worktree"
 api=${api:-$(state_port "$dir" api)} web=${web:-$(state_port "$dir" web)}
 sc=${sc:-$(state_port "$dir" showcase)} ge=${ge:-$(state_port "$dir" glass)}
@@ -60,7 +59,7 @@ fi
 if [ -e "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
   if [ -e "$dir/.git" ]; then
     origin=$(git -C "$dir" remote get-url origin 2>/dev/null || echo "no origin")
-    [ "$(norm "$origin")" = "$(norm "$url")" ] || report "$dir is a checkout of $origin" "$url" "ask"
+    [ "$(norm_source "$origin")" = "$(norm_source "$url")" ] || report "$dir is a checkout of $origin" "$url" "ask"
     [ -z "$(git -C "$dir" status --porcelain --untracked-files=no 2>/dev/null)" ] ||
       report "$dir has uncommitted changes" "a clean checkout" "ask"
   else
@@ -69,7 +68,7 @@ if [ -e "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
 fi
 for other in "$HOME/nimblebrain" "${NB_DIR:-}"; do
   [ -n "$other" ] && [ -f "$other/.nimblebrain-worktree/onboarding.json" ] || continue
-  [ "$(norm "$other")" = "$(norm "$dir")" ] && continue
+  [ "$(norm_source "$other")" = "$(norm_source "$dir")" ] && continue
   report "another NimbleBrain install at $other" "one install, at $dir" "skip (left alone; use --dir $other to reuse it)"
 done
 port_busy 27247 && report "a NimbleBrain on 27246/27247 (NimbleBrain's stock dev ports)" "nothing of ours there" "skip (never touched)"
@@ -116,7 +115,7 @@ door=""
 ws=$(curl -fsS "http://127.0.0.1:$api/v1/bootstrap" 2>/dev/null | (have bun && bun -e 'const j = await Bun.stdin.json().catch(() => ({})); console.log(j.workspaces?.[0]?.id ?? "")'))
 [ -n "$ws" ] && door="http://localhost:$api/mcp/$ws"
 want_url() { case $1 in nimblebrain) echo "$door" ;; showcase) echo "http://127.0.0.1:$sc/mcp" ;; glassengine) echo "http://127.0.0.1:$ge/mcp" ;; esac; }
-src_of() { case "$repo" in /* | ./* | ../* | "~"*) norm "$repo" ;; *) echo "${repo%.git}" ;; esac; }
+src_of() { case "$repo" in /* | ./* | ../* | "~"*) norm_source "$repo" ;; *) echo "${repo%.git}" ;; esac; }
 if { [ -z "$agent" ] || [ "$agent" = claude ]; } && have claude && have bun; then
   m=$(claude plugin marketplace list --json </dev/null 2>/dev/null | marketplace_source claude "$(src_of)")
   case "$m" in other*) report "a Claude Code marketplace named nimblebrain from ${m#other }" "$repo" "ask (never replaced)" ;; esac

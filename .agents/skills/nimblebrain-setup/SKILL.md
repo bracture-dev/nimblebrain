@@ -28,9 +28,10 @@ open. Say what you are about to run, run it, and show what happened.
 | `curl -fsSL https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/install.sh \| bash` | Paste: **Set up NimbleBrain locally: follow https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/.agents/skills/nimblebrain-setup/SKILL.md** |
 | Codex: add `-s -- --codex` after `bash` | Same line in Codex |
 
-The terminal command installs the plugin (marketplace `nimblebrain`, plugin `nimblebrain`) and opens
-the agent on `/nimblebrain:setup` (Claude Code) or this skill (Codex), so the session already has
-the showcase and GlassEngine tools.
+The terminal command shows the conflict report and plan, asks once, installs the plugin
+(marketplace `nimblebrain`, plugin `nimblebrain`), and runs setup. It starts the agent only after
+NimbleBrain, the showcase and GlassEngine are ready, then asks it to join GlassEngine and offer
+the optional key step.
 
 When you were started from the pasted line instead, install the plugin first, with the same script
 and no launch: `curl -fsSL https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/install.sh | NB_NO_LAUNCH=1 bash`

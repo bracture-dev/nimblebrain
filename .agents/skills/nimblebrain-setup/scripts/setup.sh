@@ -94,7 +94,6 @@ case "$repo" in
   *://* | git@*) url=$repo ;;
   *) url="https://github.com/$repo.git" ;;
 esac
-norm() { local u=${1%/}; u=${u%.git}; [ -d "$u" ] && u=$(cd "$u" && pwd -P); echo "$u"; }
 if [ ! -e "$dir" ] || [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
   step "cloning $url ($ref) into $dir"
   git clone --quiet --branch "$ref" "$url" "$dir" </dev/null
@@ -102,7 +101,7 @@ if [ ! -e "$dir" ] || [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
   changed=1
 elif [ -e "$dir/.git" ]; then
   origin=$(git -C "$dir" remote get-url origin 2>/dev/null || echo none)
-  [ "$(norm "$origin")" = "$(norm "$url")" ] ||
+  [ "$(norm_source "$origin")" = "$(norm_source "$url")" ] ||
     ask "$dir is a checkout of $origin, not $url. Reuse it as is (pass --repo $origin), or choose another folder."
   [ -z "$(git -C "$dir" status --porcelain --untracked-files=no)" ] ||
     ask "$dir has uncommitted changes. Leave them and reuse the checkout as is, or choose another folder."

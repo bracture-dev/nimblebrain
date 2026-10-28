@@ -36,8 +36,10 @@ The API also reloads by itself when files under `src/` change (it runs under `bu
 `bash "$SCRIPTS/uninstall.sh" "$NB_DIR"` stops everything and removes exactly what `setup.sh`
 recorded in `onboarding.json`: the agents' `nimblebrain` MCP entries (only while they still point at
 this install), the Codex feature if setup turned it on, and each agent's nimblebrain plugin and
-marketplace from the recorded source. Add `--delete-key` to also delete the saved Anthropic key
-(it asks first). The checkout folder stays.
+marketplace from the recorded source. A marketplace with another installed plugin stays. Any
+removal that fails or is skipped stays in the install record so it can be retried. Add
+`--delete-key` to also delete the saved Anthropic key (it asks first). The checkout, settings,
+workspace state and GlassEngine transcript stay; reinstall reuses them.
 
 ## Update
 

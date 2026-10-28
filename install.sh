@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # NimbleBrain local setup in one command. Installs the NimbleBrain plugin for your coding agent,
-# then opens the agent on the setup, which shows one plan and asks once before it changes anything.
+# starts the local servers, then opens the agent with its connections ready.
 #
 #   curl -fsSL https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/install.sh | bash
 #   ... | bash -s -- --codex      use Codex when Claude Code is also installed
@@ -87,6 +87,36 @@ main() {
   }
   added_marketplace=false added_plugin=false
 
+  # An existing session uses the plugin-only route and runs setup itself. In a terminal, check
+  # first and start the servers before the new agent tries to connect to them.
+  local scripts="" bootstrap="" terminal_setup=false
+  if [ -z "${NB_NO_LAUNCH:-}" ] && ( : </dev/tty ) 2>/dev/null; then
+    terminal_setup=true
+    if [ -d "$repo" ]; then
+      scripts="$want/.agents/skills/nimblebrain-setup/scripts"
+    else
+      bootstrap=$(mktemp -d "${TMPDIR:-/tmp}/nimblebrain-setup.XXXXXX")
+      trap 'rm -rf "$bootstrap"' EXIT
+      scripts=$bootstrap
+      for arg in check.sh lib.sh setup.sh; do
+        curl -fsSL "https://raw.githubusercontent.com/$repo/$ref/.agents/skills/nimblebrain-setup/scripts/$arg" -o "$scripts/$arg"
+      done
+    fi
+    bash "$scripts/check.sh" --agent "$agent" --dir "${NB_DIR:-$HOME/nimblebrain}" --repo "$repo" --ref "$ref" || exit $?
+    printf '%s\n' \
+      "Set up NimbleBrain in ${NB_DIR:-$HOME/nimblebrain}, with telemetry off." \
+      "Install the plugin, dependencies, showcase and GlassEngine; connect $agent; add a Desktop shortcut." \
+      "Reuse this install's recorded ports, or use localhost 27270/27271 and 27280/27281 for a new install." \
+      "Enable the local HTTP connectors. NimbleBrain chat can use your own provider key later."
+    if [ "$agent" = codex ]; then
+      echo "This turns on a Codex feature still marked under development, for every project on this machine. codex features disable mcp_2026_07_28 turns it off again."
+    fi
+    printf 'Go ahead? [y/N] '
+    local answer
+    IFS= read -r answer </dev/tty || exit 1
+    case "$answer" in y | Y | yes | YES) ;; *) echo "Setup cancelled; nothing changed."; exit 0 ;; esac
+  fi
+
   if [ "$agent" = claude ]; then
     local src=$repo
     [ -d "$repo" ] || src="$repo#$ref"
@@ -148,6 +178,12 @@ main() {
     else node -e "$js" -- "$note" "$agent" "$added_marketplace" "$added_plugin"; fi
   fi
 
+  if [ "$terminal_setup" = true ]; then
+    bash "$scripts/setup.sh" --agent "$agent" --dir "${NB_DIR:-$HOME/nimblebrain}" --repo "$repo" --ref "$ref"
+    [ -z "$bootstrap" ] || rm -rf "$bootstrap"
+    trap - EXIT
+  fi
+
   # The setup clones the same source the plugin came from.
   local source_note=""
   if [ "$repo" != NimbleBrainInc/nimblebrain ] || [ "$ref" != main ]; then
@@ -157,18 +193,17 @@ main() {
   fi
   if [ "$agent" = claude ]; then
     # The plugin's own local tools (GlassEngine and the showcase) run without a prompt each time.
-    set -- claude "/nimblebrain:setup${source_note}" \
+    set -- claude "NimbleBrain is set up. Join GlassEngine as claude and keep answering. Offer the optional provider key step from /nimblebrain:setup; the person can choose Later.${source_note}" \
       --allowedTools "mcp__plugin_nimblebrain_glassengine__*" "mcp__plugin_nimblebrain_showcase__*"
   else
-    set -- codex "Use the nimblebrain-setup skill to set up NimbleBrain on this machine, fast path.${source_note}"
+    set -- codex "NimbleBrain is set up. Use the nimblebrain-setup skill to join GlassEngine as codex and keep answering. Offer the optional provider key step; the person can choose Later.${source_note}"
   fi
 
   if [ -n "${NB_NO_LAUNCH:-}" ] || ! ( : </dev/tty ) 2>/dev/null; then
-    step "Plugin ready. To start setup, run:"
-    printf '    %s' "$1"; shift; printf ' "%s"' "$@"; printf '\n'
+    step "Plugin ready. In your agent, ask it to follow the nimblebrain-setup skill."
     exit 0
   fi
-  step "Starting $agent on the setup. Say yes to its plan."
+  step "Local servers ready. Starting $agent to join GlassEngine."
   exec "$@" </dev/tty
 }
 

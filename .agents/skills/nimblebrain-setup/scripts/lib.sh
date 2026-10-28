@@ -1,5 +1,20 @@
 # Helpers shared by the nimblebrain-setup scripts. Sourced, not run.
 
+# Git may rewrite HTTPS to SSH. Compare repository identity without changing either remote.
+norm_source() {
+  local u=${1%/}
+  u=${u%.git}
+  if [ -d "$u" ]; then (cd "$u" && pwd -P); return; fi
+  case "$u" in
+    https://github.com/*) u=${u#https://github.com/} ;;
+    http://github.com/*) u=${u#http://github.com/} ;;
+    git@github.com:*) u=${u#git@github.com:} ;;
+    ssh://git@github.com/*) u=${u#ssh://git@github.com/} ;;
+    *) printf '%s\n' "$u"; return ;;
+  esac
+  printf 'github.com/%s\n' "$u" | tr '[:upper:]' '[:lower:]'
+}
+
 # Anything accepting connections on the port, over IPv4 or IPv6 loopback.
 port_busy() {
   (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null && return 0
@@ -98,6 +113,34 @@ codex_feature() {
       key = a[1]; v = a[2]; gsub(/[[:space:]"]/, "", key); gsub(/[[:space:]]/, "", v)
       if ((t == "[features]" && key == k) || (t == "" && key == "features." k)) print v
     }' "$cfg" | tail -1
+}
+
+# Restore absence of a feature setup introduced. Preserve the file's other bytes and values.
+# Unsupported TOML shapes are left alone, with custody retained for a later uninstall.
+clear_codex_feature() {
+  CFG=$1 FEATURE=$2 bun --no-env-file -e '
+    import { readFileSync, writeFileSync } from "node:fs";
+    import { isDeepStrictEqual } from "node:util";
+    const { CFG, FEATURE } = process.env;
+    const before = readFileSync(CFG, "utf8");
+    const expected = Bun.TOML.parse(before);
+    if (expected.features?.[FEATURE] !== true) process.exit(0);
+    delete expected.features[FEATURE];
+    let table = "";
+    const after = before.split(/(?<=\n)/).filter((line) => {
+      const header = line.match(/^\s*\[([^\]]+)\]/);
+      if (header) table = header[1].trim();
+      const key = line.match(/^\s*([^=]+?)\s*=\s*true\s*(?:#.*)?(?:\n|$)$/)?.[1].replaceAll("\"", "").trim();
+      return !((table === "features" && key === FEATURE) || (!table && key === `features.${FEATURE}`));
+    }).join("");
+    const actual = Bun.TOML.parse(after);
+    actual.features ??= {};
+    if (!isDeepStrictEqual(actual, expected)) {
+      console.error("Feature uses an unsupported TOML shape; left config unchanged."); process.exit(1);
+    }
+    if (readFileSync(CFG, "utf8") !== before) process.exit(1);
+    writeFileSync(CFG, after);
+  '
 }
 
 # Whether the agent already has a plugin marketplace named nimblebrain, and from where. Reads the

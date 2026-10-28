@@ -105,5 +105,8 @@ for _ in $(seq 1 30); do
   grep -q 'showcase ready' "$work/dev.log" && grep -q 'glassengine ready' "$work/dev.log" && break
   sleep 1
 done
-grep -E '(showcase|glassengine) ready' "$work/dev.log" | sed 's/^/[connect] /' ||
-  { echo "[connect] the connectors did not report ready; see $work/dev.log" >&2; exit 1; }
+for name in showcase glassengine; do
+  grep -q "$name ready" "$work/dev.log" ||
+    { echo "[connect] $name did not report ready; see $work/dev.log" >&2; exit 1; }
+done
+grep -E '(showcase|glassengine) ready' "$work/dev.log" | sed 's/^/[connect] /'
