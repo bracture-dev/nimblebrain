@@ -51,6 +51,7 @@ import {
   MissingRequiredClientCapabilityError,
   ProtocolError,
   ProtocolErrorCode,
+  readRequestBody,
   Server,
 } from "@modelcontextprotocol/server";
 import { z } from "zod";
@@ -93,6 +94,10 @@ import {
   type TaskAwareSource,
   type TaskScope,
 } from "./mcp-modern-tasks.ts";
+import { apiError } from "./types.ts";
+
+/** The byte budget shared by the route, custom task parser and SDK handler. */
+export const MAX_MCP_REQUEST_BODY_BYTES = 1_048_576;
 
 /**
  * JSON-RPC error code for a `resources/read` whose URI resolves nowhere:
@@ -177,7 +182,25 @@ export class McpServerHost {
     features: ResolvedFeatures,
     requestCtx: McpRequestContext,
   ): Promise<Response> {
-    if (request.method === "POST" && (await isLegacyRequest(request))) {
+    // Count actual bytes before any JSON parser, including the task path that
+    // runs ahead of the SDK. Content-Length alone does not bound a stream.
+    if (request.body) {
+      const body = await readRequestBody(request, MAX_MCP_REQUEST_BODY_BYTES).catch(() => null);
+      if (!body) return apiError(400, "bad_request", "Could not read request body");
+      if (body.tooLarge) {
+        void request.body.cancel().catch(() => {});
+        return apiError(413, "payload_too_large", "Request body exceeds the 1 MB limit", {
+          limit: MAX_MCP_REQUEST_BODY_BYTES,
+        });
+      }
+      request = new Request(request, { body: body.text });
+    }
+    if (
+      request.method === "POST" &&
+      (await isLegacyRequest(request, undefined, {
+        maxRequestBodySize: MAX_MCP_REQUEST_BODY_BYTES,
+      }))
+    ) {
       this.logRefusedClient(request);
     } else {
       const taskReply = await answerModernTaskRequest(
@@ -198,6 +221,7 @@ export class McpServerHost {
         ),
       {
         legacy: "reject",
+        maxRequestBodySize: MAX_MCP_REQUEST_BODY_BYTES,
         onerror: (err) => log.warn(`[mcp] request failed: ${err.message}`),
       },
     );
