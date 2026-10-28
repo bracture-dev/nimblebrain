@@ -655,7 +655,7 @@ async function render() {
   // While a step shows another panel, keep its Done button in reach.
   const active = PAGE === "app" && panel !== "setup" ? setupData?.current : null;
   const bar =
-    active?.status === "in_progress"
+    active?.status === "in_progress" && active.id.startsWith("look-") && active.panel === panel
       ? h(
           "div",
           { class: "row setup-bar" },
