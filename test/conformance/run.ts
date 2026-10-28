@@ -11,7 +11,7 @@
  * Usage: bun run test:conformance
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { startGateway } from "./gateway.ts";
 
@@ -57,7 +57,7 @@ async function ensureReference(): Promise<string> {
     if (!res.ok) throw new Error(`fetching ${url}: HTTP ${res.status}`);
     writeFileSync(join(dir, file), await res.text());
   }
-  const install = spawnSync("npm", ["ci", "--no-audit", "--no-fund"], {
+  const install = spawnSync("npm", ["ci", "--ignore-scripts", "--no-audit", "--no-fund"], {
     cwd: dir,
     stdio: "inherit",
   });
@@ -74,6 +74,21 @@ async function freePort(): Promise<number> {
 
 /** Start the reference server and wait until its `/mcp` answers. */
 async function startReference(dir: string): Promise<{ url: URL; stop: () => void }> {
+  // The pinned upstream fixture defaults to all interfaces. Keep this synthetic server local,
+  // including when reusing its cache, and refuse a source change we have not accounted for.
+  const file = join(dir, "everything-server.ts");
+  const source = readFileSync(file, "utf8");
+  const original = "app.listen(PORT, () => {";
+  const restricted = "app.listen(PORT, '127.0.0.1', () => {";
+  if (
+    source.match(/\bapp\s*\.\s*listen\s*\(/g)?.length !== 1 ||
+    (!source.includes(original) && !source.includes(restricted))
+  ) {
+    throw new Error(
+      "unexpected reference server listener; review the pinned fixture before running",
+    );
+  }
+  if (source.includes(original)) writeFileSync(file, source.replace(original, restricted));
   const port = await freePort();
   const child = spawn("bun", ["--no-env-file", "everything-server.ts"], {
     cwd: dir,

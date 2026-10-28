@@ -201,13 +201,13 @@ main() {
     trap - EXIT
   fi
 
-  local source_note=" Use the existing checkout at ${NB_DIR:-$HOME/nimblebrain}."
+  local handoff="Local services are running. The terminal installer has completed setup and health verification for ${NB_DIR:-$HOME/nimblebrain} (source $repo, ref $ref). Finish this session's connection using native MCP tools: check NimbleBrain workspace status, read the Showcase checklist without changing progress, and list GlassEngine tabs. Join or reuse this session as $agent, report ready, then keep answering with wait_for_message. Ask before taking another session's tab. Repeat shell setup only if a connection check fails. Provider keys, preferences and the tour are optional afterward, only on request."
   if [ "$agent" = claude ]; then
     # The plugin's own local tools (GlassEngine and the showcase) run without a prompt each time.
-    set -- claude "Local services are running. Follow nimblebrain-setup: verify the connectors, join or reuse this session in GlassEngine as claude, then report ready and keep answering. Ask before taking another session's tab. Provider keys, preferences and the tour are optional afterward, only on request.${source_note}" \
+    set -- claude "$handoff" \
       --allowedTools "mcp__plugin_nimblebrain_glassengine__*" "mcp__plugin_nimblebrain_showcase__*"
   else
-    set -- codex "Local services are running. Follow nimblebrain-setup: verify the connectors, join or reuse this session in GlassEngine as codex, then report ready and keep answering. Ask before taking another session's tab. Provider keys, preferences and the tour are optional afterward, only on request.${source_note}"
+    set -- codex "$handoff"
   fi
 
   if [ -n "${NB_NO_LAUNCH:-}" ] || ! ( : </dev/tty ) 2>/dev/null; then
@@ -215,7 +215,17 @@ main() {
     exit 0
   fi
   step "Local servers ready. Starting $agent to join GlassEngine."
-  exec "$@" </dev/tty
+  if [ -t 0 ]; then exec "$@"; fi
+  # Bun on macOS cannot watch the /dev/tty alias. A piped install needs the
+  # process's actual terminal device, while a script run keeps its original stdin.
+  local terminal
+  terminal=$(ps -p $$ -o tty= | tr -d '[:space:]')
+  case $terminal in
+    /dev/*) ;;
+    '' | '?' | '??') echo "Open a terminal and run $agent to join GlassEngine." >&2; exit 1 ;;
+    *) terminal="/dev/$terminal" ;;
+  esac
+  exec "$@" <"$terminal"
 }
 
 main "$@"
