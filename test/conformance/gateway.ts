@@ -71,6 +71,7 @@ export async function startGateway(upstream: URL): Promise<Gateway> {
   const server = startServer({ runtime, port: 0 });
 
   const front = Bun.serve({
+    hostname: "127.0.0.1",
     port: 0,
     idleTimeout: 0,
     fetch: (req) => forward(req, `http://localhost:${server.port}`),

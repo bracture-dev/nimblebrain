@@ -92,6 +92,10 @@ function build(): Server {
 /** Serve the fixture on a free port; resolves its `/mcp` URL and a stop function. */
 export function serveSkillsConnector(): { url: URL; stop: () => void } {
   const handler = createMcpHandler(build);
-  const server = Bun.serve({ port: 0, fetch: (request) => handler.fetch(request) });
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: (request) => handler.fetch(request),
+  });
   return { url: new URL(`http://localhost:${server.port}/mcp`), stop: () => server.stop(true) };
 }

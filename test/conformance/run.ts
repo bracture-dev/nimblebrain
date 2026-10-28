@@ -66,7 +66,7 @@ async function ensureReference(): Promise<string> {
 }
 
 async function freePort(): Promise<number> {
-  const probe = Bun.serve({ port: 0, fetch: () => new Response() });
+  const probe = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response() });
   const { port } = probe;
   probe.stop(true);
   return port;
