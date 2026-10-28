@@ -49,6 +49,29 @@ afterAll(async () => {
 });
 
 describe("GlassEngine over MCP", () => {
+  test("bounds argument elements on both doors before validation", async () => {
+    for (const [client, name, args] of [
+      [host as Client, "list_tabs", {}],
+      [agent as Client, "join", { platform: "other" }],
+    ] as const) {
+      const result = await client.callTool({ name, arguments: { ...args, padding: Array(129).fill(0) } });
+      expect(result.isError).toBe(true);
+      expect(JSON.stringify(result.content)).toContain("maximum of 128 elements");
+    }
+  });
+
+  test("rejects oversized bodies while allowing a maximum-length escaped message", async () => {
+    const response = await fetch((running as Running).url, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ padding: "x".repeat(256 * 1024) }),
+    });
+    expect(response.status).toBe(413);
+    const result = await (host as Client).callTool({
+      name: "send_message", arguments: { tab: "other", text: "\u0001".repeat(20_000) },
+    });
+    expect(result.isError).not.toBe(true);
+  });
+
   test("refuses a request with an unknown token", async () => {
     const res = await fetch((running as Running).url, {
       method: "POST",

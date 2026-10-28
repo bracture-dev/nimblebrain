@@ -28,6 +28,7 @@ export function createShowcase(options: { token?: string } = {}) {
     page: renderPage,
   };
   const handler = createMcpHandler(() => createShowcaseServer(state), {
+    maxRequestBodySize: 256 * 1024,
     onerror: (error) => console.error(`[showcase] ${error.message}`),
   });
   // After every write, tell listening clients the resources changed. NimbleBrain relays the notice

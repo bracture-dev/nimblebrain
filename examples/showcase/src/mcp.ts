@@ -72,7 +72,11 @@ export function createShowcaseServer(state: ShowcaseState): McpServer {
   const { board, tour, setup } = state;
   const server = new McpServer(
     { name: "showcase", version: "0.1.0" },
-    { capabilities: { extensions: { [SKILLS_EXTENSION]: {} } }, instructions: INSTRUCTIONS },
+    {
+      capabilities: { extensions: { [SKILLS_EXTENSION]: {} } },
+      instructions: INSTRUCTIONS,
+      maxToolInputElements: 128,
+    },
   );
 
   server.registerTool(

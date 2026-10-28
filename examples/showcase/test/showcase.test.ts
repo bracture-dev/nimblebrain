@@ -223,6 +223,23 @@ describe("MCP server setup tools", () => {
 });
 
 describe("MCP server", () => {
+  test("bounds tool argument elements before schema validation", async () => {
+    const { fetch } = createShowcase();
+    const response = await rpc(fetch, "tools/call", {
+      name: "list_cards", arguments: { padding: Array(129).fill(0) },
+    });
+    expect(response.body.result.isError).toBe(true);
+    expect(response.body.result.content[0].text).toContain("maximum of 128 elements");
+  });
+
+  test("rejects oversized request bodies", async () => {
+    const { fetch } = createShowcase();
+    const response = await rpc(fetch, "tools/call", {
+      name: "list_cards", arguments: { padding: "x".repeat(256 * 1024) },
+    });
+    expect(response.status).toBe(413);
+  });
+
   test("lists every tool and marks the screen's own tools app-only", async () => {
     const { fetch } = createShowcase();
     const { body } = await rpc(fetch, "tools/list");

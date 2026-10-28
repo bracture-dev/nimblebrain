@@ -75,6 +75,7 @@ export function buildAgentServer(glass: Glass): McpServer {
   const server = new McpServer(
     { name: "glassengine", version: VERSION },
     {
+      maxToolInputElements: 128,
       instructions:
         "GlassEngine shows you as a chat tab inside the person's NimbleBrain. To join: call join with your platform " +
         `(${PLATFORMS.join(", ")}). Then loop: call wait_for_message with your session; it returns within ${MAX_WAIT_SECONDS} seconds ` +
@@ -231,6 +232,7 @@ export function buildHostServer(glass: Glass, uiHtml: () => Promise<string>): Mc
   const server = new McpServer(
     { name: "glassengine", version: VERSION },
     {
+      maxToolInputElements: 128,
       instructions:
         "GlassEngine shows the person's own coding agents (Claude Code, Codex, others) as chat tabs, one per platform, " +
         "plus any engines from its config file. list_tabs shows who is joined. read_transcript reads a tab's chat; " +
@@ -422,10 +424,13 @@ export interface Running {
 /** Serve MCP at `http://127.0.0.1:<port>/mcp` and a health check at `/health`. */
 export function serve(opts: HttpOptions): Running {
   const expected = `Bearer ${opts.token}`;
-  const handler = createMcpHandler(({ requestInfo }) =>
-    requestInfo?.headers.get("authorization") === expected
-      ? buildHostServer(opts.glass, opts.uiHtml)
-      : buildAgentServer(opts.glass),
+  const handler = createMcpHandler(
+    ({ requestInfo }) =>
+      requestInfo?.headers.get("authorization") === expected
+        ? buildHostServer(opts.glass, opts.uiHtml)
+        : buildAgentServer(opts.glass),
+    // A maximum-length message can occupy 120 KB after JSON escaping.
+    { maxRequestBodySize: 256 * 1024 },
   );
   const http = Bun.serve({
     hostname: "127.0.0.1",
