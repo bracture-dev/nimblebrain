@@ -92,15 +92,14 @@ merge() {
 todo=$(merge plan) || exit $?
 if [ -z "$todo" ]; then
   echo "[connect] already connected; nothing changed"
-  exit 0
+else
+  echo "[connect] restarting NimbleBrain to load the connectors (the examples keep running)"
+  bash "$here/stop.sh" "$dir" --keep-examples
+  backup_once "$dir" "$cfg"
+  backup_once "$dir" "$wsj"
+  merge apply | sed 's/^/[connect] added /'
+  bash "$here/start.sh" "$dir"
 fi
-
-echo "[connect] restarting NimbleBrain to load the connectors (the examples keep running)"
-bash "$here/stop.sh" "$dir" --keep-examples
-backup_once "$dir" "$cfg"
-backup_once "$dir" "$wsj"
-merge apply | sed 's/^/[connect] added /'
-bash "$here/start.sh" "$dir"
 for _ in $(seq 1 30); do
   grep -q 'showcase ready' "$work/dev.log" && grep -q 'glassengine ready' "$work/dev.log" && break
   sleep 1

@@ -66,8 +66,9 @@ running and connected, and the agent itself connected to all three. Pick one way
 The terminal command checks for conflicts and shows the plan first. After your yes, it installs
 the plugin for your agent (Claude Code if you have it, else Codex), starts NimbleBrain and its
 examples, then opens the agent with its connections ready. The plugin carries the connections to the
-showcase and GlassEngine. The command never uses sudo; if a tool such as Node.js is missing, the
-plan includes its install command, which may ask for your password. Setup adds to your settings and never replaces what
+showcase and GlassEngine. The command never uses sudo. If git, Bun or Node.js is missing, it
+stops with installation guidance; install the prerequisite and rerun the command.
+Setup adds to your settings and never replaces what
 is there; run it again any time, and it says "already set up". It also leaves a NimbleBrain shortcut
 on your Desktop (it holds only the localhost address, so an iCloud-synced Desktop copies nothing
 private). `uninstall.sh` in the skill's scripts removes exactly what setup added.

@@ -102,7 +102,24 @@ main() {
         curl -fsSL "https://raw.githubusercontent.com/$repo/$ref/.agents/skills/nimblebrain-setup/scripts/$arg" -o "$scripts/$arg"
       done
     fi
-    bash "$scripts/check.sh" --agent "$agent" --dir "${NB_DIR:-$HOME/nimblebrain}" --repo "$repo" --ref "$ref" || exit $?
+    local check_status=0
+    bash "$scripts/check.sh" --agent "$agent" --dir "${NB_DIR:-$HOME/nimblebrain}" --repo "$repo" --ref "$ref" || check_status=$?
+    if [ "$check_status" != 0 ]; then
+      if ! git --version >/dev/null 2>&1; then
+        if [ "$(uname)" = Darwin ]; then echo "Install git: xcode-select --install"
+        else echo "Install git with your system package manager (Debian/Ubuntu: sudo apt-get install git)."; fi
+      fi
+      if ! have bun; then
+        if have brew; then echo "Install Bun: brew install oven-sh/bun/bun"
+        else echo 'Install the pinned Bun: curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.3"'; fi
+      fi
+      if ! have node || [ "$(node --version | sed 's/^v//' | cut -d. -f1)" -lt 22 ]; then
+        if have brew; then echo "Install Node.js 22+: brew install node"
+        else echo "Install Node.js 22+: https://nodejs.org/en/download"; fi
+      fi
+      echo "Resolve the conflicts above, then rerun the same setup command. Nothing was changed."
+      exit "$check_status"
+    fi
     printf '%s\n' \
       "Set up NimbleBrain in ${NB_DIR:-$HOME/nimblebrain}, with telemetry off." \
       "Install the plugin, dependencies, showcase and GlassEngine; connect $agent; add a Desktop shortcut." \
@@ -184,13 +201,7 @@ main() {
     trap - EXIT
   fi
 
-  # The setup clones the same source the plugin came from.
-  local source_note=""
-  if [ "$repo" != NimbleBrainInc/nimblebrain ] || [ "$ref" != main ]; then
-    source_note=" Clone NimbleBrain from $repo"
-    [ -d "$repo" ] || source_note="$source_note at $ref"
-    source_note="$source_note."
-  fi
+  local source_note=" Use the existing checkout at ${NB_DIR:-$HOME/nimblebrain}."
   if [ "$agent" = claude ]; then
     # The plugin's own local tools (GlassEngine and the showcase) run without a prompt each time.
     set -- claude "NimbleBrain is set up. Join GlassEngine as claude and keep answering. Offer the optional provider key step from /nimblebrain:setup; the person can choose Later.${source_note}" \
