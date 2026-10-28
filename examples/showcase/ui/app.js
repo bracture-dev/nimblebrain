@@ -24,7 +24,7 @@ const PANELS = [
   { id: "chart", label: "Chart", tools: ["board_stats"] },
   { id: "bridge", label: "Buttons", tools: ["export_cards"] },
   { id: "server", label: "This app", tools: ["describe_server"] },
-  { id: "placements", label: "Places", tools: ["describe_server"] },
+  { id: "placements", label: "Where apps appear", tools: ["describe_server"] },
 ];
 const STATUSES = ["todo", "doing", "done"];
 const TAGS = ["design", "writing", "ops"];
