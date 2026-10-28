@@ -380,6 +380,12 @@ Give the person a short summary:
 
 When something fails, check [references/troubleshooting.md](references/troubleshooting.md) first.
 
+## Build an app after setup
+
+When the person wants their own app, follow [Build your first local app](references/build-an-app.md).
+It copies the showcase into a separate folder and adds it beside the existing apps, then checks
+the tools and screen together.
+
 ## Improve this skill
 
 Every install tests this skill. If anything was confusing, slow or wrong, tell the person in two or
