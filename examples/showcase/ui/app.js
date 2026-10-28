@@ -102,13 +102,14 @@ async function renderTour() {
   tourData = tourData ?? (await call("start_tour"));
   const done = new Set(tourData.done);
   tourIndex ??= Math.max(0, tourData.steps.findIndex((step) => !done.has(step.id)));
-  const step = tourData.steps[tourIndex];
+  const index = tourIndex;
+  const step = tourData.steps[index];
   const selectStep = (index) => { tourIndex = index; render(); };
   const advance = async () => {
     try {
       const progress = await call("save_tour_step", { step: step.id, done: true });
       tourData = { ...tourData, ...progress };
-      tourIndex = Math.min(tourIndex + 1, tourData.steps.length - 1);
+      if (tourIndex === index) tourIndex = Math.min(index + 1, tourData.steps.length - 1);
       render();
     } catch (error) { alertLine(error); }
   };

@@ -119,6 +119,7 @@ esac`;
   shell(join(bin, "codex"), nativeAgent);
   return {
     dir,
+    home: join(root, "home"),
     state: () => JSON.parse(readFileSync(statePath, "utf8")) as InstallState,
     packages: () => readFileSync(join(root, "packages"), "utf8"),
     removeDependencies: () => rmSync(join(dir, "node_modules"), { recursive: true, force: true }),
@@ -156,6 +157,37 @@ esac`;
       return { status: result.status, output: result.stdout + result.stderr };
     },
   };
+}
+
+test("setup leaves an unavailable Desktop shortcut alone", () => {
+  const setup = fixture();
+  const desktop = join(setup.home, "Desktop");
+  mkdirSync(desktop);
+  // A FIFO models a file whose read never completes, without relying on a cloud provider.
+  const shortcut = join(desktop, "NimbleBrain.webloc");
+  expect(spawnSync("mkfifo", [shortcut]).status).toBe(0);
+  expect(setup.run().status).toBe(0);
+  expect(existsSync(shortcut)).toBe(true);
+  expect(setup.state().added.some((entry) => entry.startsWith("desktop:"))).toBe(false);
+});
+
+for (const option of ["--showcase-port", "--glass-port"]) {
+  test(`preflight refuses unsupported native plugin ports via ${option}`, () => {
+    const setup = fixture();
+    const result = spawnSync(
+      "bash",
+      [join(source, "check.sh"), "--dir", setup.dir, option, "29000"],
+      {
+        env: { HOME: setup.home, PATH: "/usr/bin:/bin" },
+        encoding: "utf8",
+        timeout: 5_000,
+      },
+    );
+    expect(result.status).toBe(3);
+    expect(result.stdout).toContain("Showcase 27280 and GlassEngine 27281");
+    expect(result.stdout).not.toContain("not installed");
+    expect(existsSync(join(setup.dir, ".nimblebrain-worktree/onboarding.json"))).toBe(false);
+  });
 }
 
 test("native configuration failure retains prior successful agents and additions", () => {

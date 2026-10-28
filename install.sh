@@ -122,7 +122,7 @@ main() {
     fi
     printf '%s\n' \
       "Set up NimbleBrain in ${NB_DIR:-$HOME/nimblebrain}, with telemetry off." \
-      "Install the plugin, dependencies, showcase and GlassEngine; connect $agent; add a Desktop shortcut." \
+      "Install the plugin, dependencies, showcase and GlassEngine; connect $agent." \
       "Reuse this install's recorded ports, or use localhost 27270/27271 and 27280/27281 for a new install." \
       "Enable the local HTTP connectors. NimbleBrain chat can use your own provider key later."
     if [ "$agent" = codex ]; then

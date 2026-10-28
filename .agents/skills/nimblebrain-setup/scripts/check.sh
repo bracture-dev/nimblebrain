@@ -39,6 +39,13 @@ sc=${sc:-$(state_port "$dir" showcase)} ge=${ge:-$(state_port "$dir" glass)}
 api=${api:-$(env_value "$dir" NB_API_PORT)} web=${web:-$(env_value "$dir" NB_WEB_PORT)}
 api=${api:-27271} web=${web:-27270} sc=${sc:-27280} ge=${ge:-27281}
 
+# The native plugins use these fixed example endpoints. Refuse before setup changes anything.
+if [ "$sc" != 27280 ] || [ "$ge" != 27281 ]; then
+  report "example ports $sc/$ge" "Showcase 27280 and GlassEngine 27281 for the native plugins" \
+    "ask (use the default example ports, or configure the native MCP entries manually)"
+  exit 3
+fi
+
 # Tools and versions. On macOS, git can be a stub that only offers to install the developer tools.
 git --version >/dev/null 2>&1 || report "git is not installed" "git" "ask (offer the install command)"
 for t in bun node curl; do have "$t" || report "$t is not installed" "$t on PATH" "ask (offer the install command)"; done
@@ -90,14 +97,9 @@ for pair in "showcase:$sc" "glassengine:$ge"; do
   if [ "$name" = glassengine ] && curl -fsS "http://127.0.0.1:$p/health" 2>/dev/null | grep -q '"glassengine"'; then
     report "a GlassEngine from another folder on port $p" "free, or this checkout's GlassEngine" "ask (its token differs)"
   else
-    report "port $p ($name) is in use by something else" "free, or this checkout's $name" "ask (pick another port)"
+    report "port $p ($name) is in use by something else" "free, or this checkout's $name" "ask (native plugins require this port)"
   fi
 done
-
-# The Desktop shortcut.
-sc_file="$HOME/Desktop/NimbleBrain.webloc"
-[ -f "$sc_file" ] && ! grep -q "<string>http://localhost:$web</string>" "$sc_file" &&
-  report "$sc_file points somewhere else" "http://localhost:$web" "skip (left as it is)"
 
 # The Anthropic key: only whether it is set, never its value.
 in_env=0 in_file=0 in_chain=0

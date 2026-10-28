@@ -70,10 +70,10 @@ the plugin for your agent (Claude Code if you have it, else Codex), starts Nimbl
 examples, then opens the agent with its connections ready. The plugin carries the connections to the
 showcase and GlassEngine. The command never uses sudo. If git, Bun or Node.js is missing, it
 stops with installation guidance; install the prerequisite and rerun the command.
-Setup adds to your settings and never replaces what
-is there; run it again any time, and it says "already set up". It also leaves a NimbleBrain shortcut
-on your Desktop (it holds only the localhost address, so an iCloud-synced Desktop copies nothing
-private). `uninstall.sh` in the skill's scripts removes exactly what setup added.
+Setup adds to your settings and never replaces what is there; run it again any time, and it says
+"already set up". Bookmark the local address for later. The native plugins use ports 27280 and
+27281 for the examples; setup reports a conflict if those ports are unavailable.
+`uninstall.sh` in the skill's scripts removes exactly what setup added.
 
 **Add your Anthropic key.** NimbleBrain's own chat needs one; setup through your agent does not.
 Setup offers to open a private Terminal window where you paste it, so your agent never sees it. On

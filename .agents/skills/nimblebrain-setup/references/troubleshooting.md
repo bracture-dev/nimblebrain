@@ -70,6 +70,13 @@ and workspace id.
 **Claude Code says `Not logged in`.** Run `/login` in Claude Code first. That signs in the agent's
 own account, which is separate from NimbleBrain's provider key.
 
+**Codex says its access token could not be refreshed.** Run `codex login`, finish the sign-in,
+then rerun setup. A saved login status alone does not prove the token is still usable.
+
+**Setup reports non-default example ports.** The native plugins expect Showcase on 27280 and
+GlassEngine on 27281. Use those ports for bootstrap. A custom example port also needs a matching
+native MCP entry; changing the server port alone does not update the plugin.
+
 **Codex: `-32022` / `Unsupported protocol version`.** Enable the `mcp_2026_07_28` feature
 ([connect-agents.md](connect-agents.md)). If it is enabled and tools are still missing, look for a
 project `.codex/config.toml` that disables the server.

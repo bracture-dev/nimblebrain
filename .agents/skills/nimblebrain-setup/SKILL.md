@@ -57,7 +57,7 @@ in Claude Code); otherwise list the options in plain text.
    > I will set up NimbleBrain in `~/nimblebrain` (NimbleBrain on localhost 27270, its API on
    > 27271, the showcase on 27280, GlassEngine on 27281; telemetry off). I install from the
    > lockfiles, start all three, add the showcase and GlassEngine to your workspace, connect this
-   > agent to all three, put a NimbleBrain shortcut on your Desktop, and open GlassEngine for you.
+   > agent to all three, and open GlassEngine for you.
    > The two connectors run on plain HTTP on localhost, so I set NimbleBrain's development setting
    > `allowInsecureRemotes`, which allows that for localhost addresses only. Anything already set up
    > is reused; I add, I never replace. NimbleBrain's own chat needs an Anthropic key, which you can
@@ -72,9 +72,11 @@ in Claude Code); otherwise list the options in plain text.
    run outside your sandbox (`git clone`, local ports). It clones or updates the checkout, installs
    dependencies once per commit, writes `.env` (it only adds missing lines), starts the showcase and
    GlassEngine and then NimbleBrain, adds both as workspace connectors, verifies, and adds this
-   agent's `nimblebrain` workspace connection (Codex: and the `mcp_2026_07_28` feature), and puts a
-   `NimbleBrain.webloc` shortcut with NimbleBrain's icon on the Desktop, which opens NimbleBrain in
-   the default browser. Exit 3 with a line starting `ASK:` means it found a conflict and stopped:
+   agent's `nimblebrain` workspace connection (Codex: and the `mcp_2026_07_28` feature).
+   Native plugins require Showcase on 27280 and GlassEngine on 27281; custom example ports need
+   manual native MCP configuration. API and web ports can differ. Bootstrap leaves Desktop files
+   alone; offer a browser bookmark afterward if wanted.
+   Exit 3 with a line starting `ASK:` means it found a conflict and stopped:
    show that line and ask. A second
    run on a finished install says "already set up" and goes straight to the hand-over. It leaves a
    recorded checkout where it is; `--update` fast-forwards it.

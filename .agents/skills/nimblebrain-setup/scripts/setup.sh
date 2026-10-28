@@ -245,43 +245,8 @@ else
 fi
 agent_ready=1
 
-# 6. A Desktop shortcut that opens NimbleBrain in the default browser (macOS reads .webloc files).
-#    It holds only the localhost address, so a Desktop that iCloud syncs copies nothing private.
-shortcut="$HOME/Desktop/NimbleBrain.webloc"
-webloc() {
-  printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
-    '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
-    '<plist version="1.0">' '<dict>' '  <key>URL</key>' "  <string>http://localhost:$web</string>" '</dict>' '</plist>'
-}
-if [ ! -d "$HOME/Desktop" ]; then
-  step "no Desktop folder; skipped the shortcut"
-  shortcut=""
-elif [ ! -e "$shortcut" ]; then
-  webloc >"$shortcut"
-  added+=("desktop:$shortcut")
-  step "added $shortcut"
-  changed=1
-elif [ "$(cat "$shortcut")" = "$(webloc)" ]; then
-  step "Desktop shortcut already in place"
-else
-  step "conflict: $shortcut exists with other content; left as it is (expected http://localhost:$web)"
-  shortcut=""
-fi
-
-# Our shortcut gets NimbleBrain's icon, dark unless the Mac is in light mode. Setting it again is
-# harmless; the file's content does not change. Paths go to osascript as arguments, never as code.
-if [ -n "$shortcut" ] && [ "$(uname)" = Darwin ]; then
-  variant=light
-  [ "$(defaults read -g AppleInterfaceStyle 2>/dev/null || true)" = Dark ] && variant=dark
-  png="$dir/.agents/skills/nimblebrain-setup/assets/nimblebrain-icon-$variant-512.png"
-  if [ -f "$png" ]; then
-    osascript -l JavaScript -e 'ObjC.import("AppKit")' \
-      -e 'function run(argv) { $.NSWorkspace.sharedWorkspace.setIconForFileOptions($.NSImage.alloc.initWithContentsOfFile(argv[0]), argv[1], 0) }' \
-      "$png" "$shortcut" </dev/null >/dev/null || step "note: could not set the shortcut's icon"
-  fi
-fi
-
-# 7. Record it (the EXIT trap does this too, for a run that stops part way).
+# 6. Record it (the EXIT trap does this too, for a run that stops part way).
+# Optional Desktop files may be cloud placeholders; bootstrap never reads or changes them.
 save_state
 
 [ "$changed" = 1 ] || step "already set up; nothing changed"
