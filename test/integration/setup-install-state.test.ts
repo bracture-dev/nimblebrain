@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import {
+  appendFileSync,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -170,6 +171,73 @@ test("setup leaves an unavailable Desktop shortcut alone", () => {
   expect(setup.run().status).toBe(0);
   expect(existsSync(shortcut)).toBe(true);
   expect(setup.state().added.some((entry) => entry.startsWith("desktop:"))).toBe(false);
+});
+
+test("preflight rejects another branch and preserves matching detached tags", () => {
+  const setup = fixture();
+  const root = resolve(setup.dir, "..");
+  const bin = join(root, "bin");
+  const scripts = join(setup.dir, ".agents/skills/nimblebrain-setup/scripts");
+  const env = {
+    PATH: `${bin}:/usr/bin:/bin`,
+    HOME: setup.home,
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_NOSYSTEM: "1",
+    NB_TEST_ROOT: root,
+    NB_TEST_BUN: process.execPath,
+  };
+  const git = (...args: string[]) => {
+    const result = spawnSync("/usr/bin/git", args, { cwd: setup.dir, env, encoding: "utf8" });
+    expect(result.status).toBe(0);
+    return result.stdout.trim();
+  };
+  rmSync(join(setup.dir, ".git"), { recursive: true });
+  git("init", "-b", "main");
+  git(
+    "-c",
+    "user.name=Fixture",
+    "-c",
+    "user.email=fixture@example.invalid",
+    "commit",
+    "--allow-empty",
+    "-m",
+    "fixture",
+  );
+  git("remote", "add", "origin", "https://github.com/fixture/repo.git");
+  git("tag", "v1");
+  const head = git("rev-parse", "HEAD");
+  writeFileSync(join(bin, "git"), '#!/bin/bash\nexec /usr/bin/git "$@"\n');
+  writeFileSync(join(bin, "node"), "#!/bin/bash\necho v22.0.0\n");
+  writeFileSync(join(bin, "uname"), "#!/bin/bash\necho Linux\n", { mode: 0o755 });
+  appendFileSync(join(scripts, "lib.sh"), "\nport_busy() { return 1; }\n");
+  copyFileSync(join(source, "check.sh"), join(scripts, "check.sh"));
+  const check = (ref: string) =>
+    spawnSync(
+      "bash",
+      [
+        join(scripts, "check.sh"),
+        "--agent",
+        "claude",
+        "--dir",
+        setup.dir,
+        "--repo",
+        "fixture/repo",
+        "--ref",
+        ref,
+      ],
+      { cwd: root, env, encoding: "utf8", timeout: 5_000 },
+    );
+  expect(check("main").status).toBe(0);
+  const wrong = check("feature/onboarding");
+  expect(wrong.status).toBe(3);
+  expect(wrong.stdout).toContain("feature/onboarding");
+  expect(existsSync(join(setup.dir, ".env"))).toBe(false);
+  expect(existsSync(join(setup.dir, ".nimblebrain-worktree/onboarding.json"))).toBe(false);
+  expect(git("branch", "--show-current")).toBe("main");
+  git("checkout", "--detach", "v1");
+  expect(check("v1").status).toBe(0);
+  expect(check(head).status).toBe(0);
+  expect(check("missing-tag").status).toBe(3);
 });
 
 for (const option of ["--showcase-port", "--glass-port"]) {

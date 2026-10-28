@@ -69,6 +69,15 @@ if [ -e "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
     [ "$(norm_source "$origin")" = "$(norm_source "$url")" ] || report "$dir is a checkout of $origin" "$url" "ask"
     [ -z "$(git -C "$dir" status --porcelain --untracked-files=no 2>/dev/null)" ] ||
       report "$dir has uncommitted changes" "a clean checkout" "ask"
+    branch=$(git -C "$dir" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
+    if [ -n "$branch" ]; then
+      [ "$branch" = "${ref#refs/heads/}" ] ||
+        report "$dir is on branch $branch" "requested ref $ref" "ask (switch to the requested ref, or pass --ref $branch to reuse this branch)"
+    else
+      wanted=$(git -C "$dir" rev-parse --verify "$ref^{commit}" 2>/dev/null || true)
+      [ -n "$wanted" ] && [ "$(git -C "$dir" rev-parse HEAD)" = "$wanted" ] ||
+        report "$dir has a detached HEAD" "requested ref $ref" "ask (check out the requested ref, or pass the matching tag or commit)"
+    fi
   else
     report "$dir exists and is not a git checkout" "an empty or missing folder" "ask"
   fi

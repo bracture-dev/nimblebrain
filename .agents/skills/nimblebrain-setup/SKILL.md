@@ -22,6 +22,10 @@ open. Say what you are about to run, run it, and show what happened.
 | `curl -fsSL https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/install.sh \| bash` | Paste: **Set up NimbleBrain locally: follow https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/.agents/skills/nimblebrain-setup/SKILL.md** |
 | Codex: add `-s -- --codex` after `bash` | Same line in Codex |
 
+For a fork, keep the repository and branch the person named throughout: download this skill and
+`install.sh` from that source, set `NB_REPO` and `NB_REF` for the installer, and pass the same
+`--repo` and `--ref` to both check and setup. The upstream examples below are defaults only.
+
 The terminal command shows the conflict report and plan, asks once, installs the plugin
 (marketplace `nimblebrain`, plugin `nimblebrain`), and runs setup. It starts the agent only after
 NimbleBrain, the showcase and GlassEngine are ready, then asks it to verify the connectors, join
@@ -32,8 +36,9 @@ and no launch: `curl -fsSL https://raw.githubusercontent.com/NimbleBrainInc/nimb
 (add `-s -- --codex` on Codex; it may need to run outside your sandbox). Check whether this
 session has loaded the plugin's tools. If it has not, explain the needed refresh in the plan:
 
-- Claude Code: type `/reload-plugins` once setup has finished, which loads the plugin's servers
-  into this session.
+- Claude Code in a terminal: type `/reload-plugins` once setup has finished. Follow any reload
+  confirmation it shows. Desktop and other non-terminal sessions load newly added plugin servers
+  in the next session; explain that extra step before promising a completion time.
 - Codex: use the client's plugin reload if it offers one, then verify the tools are available.
   In the CLI, quit and run `codex resume --last` to reopen this conversation with the plugin,
   the feature and the workspace door loaded.
@@ -358,7 +363,7 @@ are connected. The person can leave it there or choose a board, tour, preference
 Give the person a short summary:
 
 - What changed and where: `NB_DIR` (code, `.env`, state in `.nimblebrain-worktree/` and
-  `examples/glassengine/.glassengine/`), the agent's MCP entries, the Desktop shortcut, and anything
+  `examples/glassengine/.glassengine/`), the agent's MCP entries, and anything
   installed on the machine. `onboarding.json` lists what setup added.
 - Every conflict `check.sh` reported, and what was done about it.
 - What you checked, with the command, and what you did not (for example chat, if there is no key
