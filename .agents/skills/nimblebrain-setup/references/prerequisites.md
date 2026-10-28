@@ -11,13 +11,13 @@ package manager they already use. After any install, open a new shell or run `ha
 
 ## Bun
 
-NimbleBrain pins Bun in `package.json` (`"packageManager": "bun@1.4.3"` at the time of writing;
+NimbleBrain pins Bun in `package.json` (`"packageManager": "bun@1.4.4"` at the time of writing;
 read the file for the current pin). CI and the container image use the same version, so match it.
 A newer patch release usually works. An older minor release does not.
 
 - Homebrew: `brew install oven-sh/bun/bun`, then check `bun --version`.
-- npm: `npm install -g bun@1.4.3`.
-- Official installer, pinned: `curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.3"`. Show the
+- npm: `npm install -g bun@1.4.4`.
+- Official installer, pinned: `curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.4"`. Show the
   person the script (`curl -fsSL https://bun.sh/install | less`) before running it, and let them
   choose this route.
 - Already installed at another version: `bun upgrade` moves to the latest release, which may not

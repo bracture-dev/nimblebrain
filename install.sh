@@ -111,7 +111,7 @@ main() {
       fi
       if ! have bun; then
         if have brew; then echo "Install Bun: brew install oven-sh/bun/bun"
-        else echo 'Install the pinned Bun: curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.3"'; fi
+        else echo 'Install the pinned Bun: curl -fsSL https://bun.sh/install | bash -s "bun-v1.4.4"'; fi
       fi
       if ! have node || [ "$(node --version | sed 's/^v//' | cut -d. -f1)" -lt 22 ]; then
         if have brew; then echo "Install Node.js 22+: brew install node"

@@ -5,7 +5,7 @@
   "description": "Your own coding agents as chat tabs inside NimbleBrain: one local MCP server that NimbleBrain and the agents both connect to.",
   "license": "Apache-2.0",
   "type": "module",
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.4",
   "scripts": {
     "start": "bun run src/main.ts",
     "test": "bun test --no-env-file",

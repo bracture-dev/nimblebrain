@@ -5,7 +5,7 @@
   "description": "A guided tour of what stock NimbleBrain does with an MCP App, served as one local MCP server",
   "license": "Apache-2.0",
   "type": "module",
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.4",
   "scripts": {
     "start": "bun run src/server.ts",
     "test": "bun test"

@@ -1,6 +1,6 @@
 {
   "name": "nimblebrain",
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.4",
   "version": "0.0.0-dev",
   "description": "Self-hosted platform for MCP Apps and agent tasks — tools, interactive UIs, scheduled runs",
   "license": "Apache-2.0",
@@ -22,7 +22,7 @@
     "bun"
   ],
   "engines": {
-    "bun": ">=1.2.0"
+    "bun": ">=1.4.4"
   },
   "type": "module",
   "files": [

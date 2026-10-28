@@ -4,7 +4,7 @@ Thanks for your interest in contributing. This guide covers how to set up the de
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) >= 1.2.0 (`engines.bun`; CI runs 1.4.3, the version `packageManager` pins)
+- [Bun](https://bun.sh) >= 1.4.4 (`engines.bun`; CI runs 1.4.4, the version `packageManager` pins)
 - [Node.js](https://nodejs.org) >= 22 (required by some web tooling)
 - Docker (optional, for container-based development)
 
