@@ -122,16 +122,28 @@ async function renderTour() {
       step.panel !== "tour"
         ? h("button", { class: "primary", onclick: () => openPanel(step.panel) }, "Open example")
         : null,
-      h("button", { class: step.panel === "tour" ? "primary" : "", onclick: advance },
-        tourIndex < tourData.steps.length - 1 ? "Done & next" : done.has(step.id) ? "Completed" : "Finish tour"),
+      h("button", { class: step.panel === "tour" ? "primary" : "", onclick: advance,
+        disabled: tourIndex === tourData.steps.length - 1 && done.has(step.id) },
+        tourIndex < tourData.steps.length - 1 ? "Done & next" : done.has(step.id) ? "Tour complete" : "Finish tour"),
       tourIndex < tourData.steps.length - 1
         ? h("button", { onclick: () => selectStep(tourIndex + 1) }, "Skip for now") : null,
     ),
-    dev(h("p", {}, step.shows)),
+    h("details", {}, h("summary", {}, "How it works"), h("p", {}, step.shows)),
     h("details", {}, h("summary", {}, "Choose a step"),
       h("div", { class: "step-choices" }, tourData.steps.map((item, index) =>
-        h("button", { "aria-current": index === tourIndex ? "step" : false, onclick: () => selectStep(index) },
-          `${done.has(item.id) ? "✓ " : ""}${index + 1}. ${item.title}`),
+        h("div", { class: "row" },
+          h("input", { type: "checkbox", "aria-label": `Mark "${item.title}" done`, checked: done.has(item.id),
+            onchange: async (event) => {
+              try {
+                const progress = await call("save_tour_step", { step: item.id, done: event.target.checked });
+                tourData = { ...tourData, ...progress };
+                render();
+              } catch (error) { alertLine(error); }
+            },
+          }),
+          h("button", { "aria-current": index === tourIndex ? "step" : false, onclick: () => selectStep(index) },
+            `${index + 1}. ${item.title}`),
+        ),
       )),
     ),
   );
