@@ -97,9 +97,9 @@ export const SETUP_STEPS: readonly SetupStep[] = [
   {
     id: "glassengine",
     title: "Bring your own agent",
-    blurb: "Optionally connect your own coding agent so it shows up here in a tab.",
+    blurb: "See your coding agent in its NimbleBrain tab. You can skip this for now.",
     instruction:
-      "Ask whether the person wants their own coding agent to appear in a tab of NimbleBrain through GlassEngine. If yes, connect it as a second connector the same way this app was connected and note what you did. If no, skip.",
+      "Inspect the existing GlassEngine connector and platform tab first. If this session has already joined, show the tab and note that it is ready. Otherwise ask whether the person wants to connect their coding agent. If yes, reuse the connector, register it only if absent, and join only if this session has not joined. If another session owns the tab, ask the person before handing it over. If no, skip.",
     via: "",
     panel: "setup",
     optional: true,
