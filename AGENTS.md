@@ -1,5 +1,13 @@
 # NimbleBrain
 
+## Asked to install, run, or try this repository?
+
+- Start with [the local setup skill](.agents/skills/nimblebrain-setup/SKILL.md), before the development commands below.
+- Keep the repository and branch from the person's URL throughout setup. Do not substitute upstream defaults.
+- Check an existing installation first; add missing pieces and preserve data and settings. Resolve conflicts before installing or updating anything.
+- Aim for a 90-second bootstrap with prerequisites ready. Verify Showcase, GlassEngine and the current agent connection; report actual elapsed time and any required reload.
+- Give clickable local links before optional exploration. Provider keys, preferences and the tour come afterward, only when requested.
+
 > This file is read by agents. Keep edits terse, imperative, token-aware. No long-form prose; bullets with concrete triggers and examples.
 
 Self-hosted platform for MCP Apps and agent tasks, built on Bun. Agentic loop + MCP connector management + interactive UI host + scheduled tasks + skill-driven prompt composition + HTTP API + web client.

@@ -1,5 +1,18 @@
 # NimbleBrain
 
+## Try it with Claude Code or Codex
+
+Paste this repository's branch URL into your agent with:
+
+```text
+Set this up locally. Start with AGENTS.md.
+```
+
+The [setup instructions](.agents/skills/nimblebrain-setup/SKILL.md) check for an existing install,
+add missing components, and connect your agent to Showcase and GlassEngine. The bootstrap target
+is 90 seconds with prerequisites ready; downloads, approvals and session reloads can take longer.
+Provider keys, preferences and the tour are optional afterward.
+
 [![CI](https://github.com/NimbleBrainInc/nimblebrain/actions/workflows/ci.yml/badge.svg)](https://github.com/NimbleBrainInc/nimblebrain/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/NimbleBrainInc/nimblebrain/blob/main/LICENSE)
 [![Bun](https://img.shields.io/badge/runtime-Bun-f9f1e1?logo=bun)](https://bun.sh)

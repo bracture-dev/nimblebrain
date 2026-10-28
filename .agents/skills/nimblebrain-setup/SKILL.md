@@ -31,10 +31,11 @@ The terminal command shows the conflict report and plan, asks once, installs the
 NimbleBrain, the showcase and GlassEngine are ready, then asks it to verify the connectors, join
 GlassEngine and report ready.
 
-When you were started from the pasted line instead, install the plugin first, with the same script
-and no launch: `curl -fsSL https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/install.sh | NB_NO_LAUNCH=1 bash`
-(add `-s -- --codex` on Codex; it may need to run outside your sandbox). Check whether this
-session has loaded the plugin's tools. If it has not, explain the needed refresh in the plan:
+When you were started from the pasted line instead, check the existing installation before
+installing or updating the plugin. Download `check.sh` and `lib.sh` from the requested source's
+`.agents/skills/nimblebrain-setup/scripts/` into one temporary directory, set `SCRIPTS` to that
+directory, and use it for the read-only check. Follow the check and approval steps below before making changes. Include any
+needed plugin refresh in that plan:
 
 - Claude Code in a terminal: type `/reload-plugins` once setup has finished. Follow any reload
   confirmation it shows. Desktop and other non-terminal sessions load newly added plugin servers
@@ -43,7 +44,7 @@ session has loaded the plugin's tools. If it has not, explain the needed refresh
   In the CLI, quit and run `codex resume --last` to reopen this conversation with the plugin,
   the feature and the workspace door loaded.
 
-Find `SCRIPTS` in the copy the agent keeps of the marketplace:
+For a terminal-launched setup, find `SCRIPTS` in the copy the agent keeps of the marketplace:
 `claude plugin marketplace list --json` (`installLocation`) or `codex plugin marketplace list --json`
 (`root`), plus `/.agents/skills/nimblebrain-setup/scripts`.
 
@@ -56,6 +57,8 @@ in Claude Code); otherwise list the options in plain text.
 1. **Check, read-only.** Run `bash "$SCRIPTS/check.sh" --agent <claude|codex>` (add any `--dir`,
    `--repo`, `--ref` or port the person or the launch prompt gave). It changes nothing and prints
    every conflict: what it found, what it expected, and what setup will do (reuse, skip or ask).
+   If it exits nonzero, resolve the reported conflicts with the person and rerun it successfully
+   before step 3. Approval of a plan does not make an unresolved conflict safe to overwrite.
 2. **Confirm any unapproved work.** Show this with the conflict lines and ask **Go ahead?** with
    **Yes** and **Change something**, unless the person already approved the same plan:
 
@@ -73,7 +76,11 @@ in Claude Code); otherwise list the options in plain text.
    password or sudo prompt the person types for that install is fine; the setup itself never uses
    sudo. On **Change something**, ask what, then go on
    with those values, or follow the step-by-step sections below.
-3. **Run it.** `bash "$SCRIPTS/setup.sh" --agent <claude|codex>` with the same flags. It may need to
+3. **Run it.** For a pasted-line setup, first install the plugin without launching another agent:
+   `curl -fsSL https://raw.githubusercontent.com/NimbleBrainInc/nimblebrain/main/install.sh | NB_NO_LAUNCH=1 bash`
+   (add `-s -- --codex` on Codex; use the requested fork and branch as described above).
+   Then resolve `SCRIPTS` from the installed marketplace again and run
+   `bash "$SCRIPTS/setup.sh" --agent <claude|codex>` with the same flags. It may need to
    run outside your sandbox (`git clone`, local ports). It clones or updates the checkout, installs
    dependencies once per commit, writes `.env` (it only adds missing lines), starts the showcase and
    GlassEngine and then NimbleBrain, adds both as workspace connectors, verifies, and adds this
@@ -85,12 +92,18 @@ in Claude Code); otherwise list the options in plain text.
    show that line and ask. A second
    run on a finished install says "already set up" and goes straight to the hand-over. It leaves a
    recorded checkout where it is; `--update` fast-forwards it.
-4. **Connect this session.** Open the `GlassEngine:` URL printed by `setup.sh`, then join as
-   `claude` or `codex` with the plugin's tools and keep answering. Reuse this session's existing
+4. **Connect this session.** Complete this short connection sequence here without delegation.
+   Discover only the needed tool names and schemas. Verify the workspace, read the Showcase
+   checklist without changing progress, and join GlassEngine as `claude` or `codex` with the
+   plugin's tools. Reuse this session's existing
    join; ask before taking a tab held by another session. Verify both connectors and the workspace
    connection. If tools need a reload, follow the client-specific step above and finish the join
    after it; do not call the bootstrap ready before then.
-5. **Ready.** Give the short summary in step 12. The person can use the Showcase buttons to try
+5. **Ready.** Send a normal assistant message with the `GlassEngine:` link from `setup.sh` before
+   any browser operation or waiting call. Open it only if a browser is already available; browser
+   configuration can wait. Continue listening with `wait_for_message` and answering while the
+   person tests the app; a quiet timeout alone does not mean the session is finished.
+   Give the short summary in step 12. The person can use the Showcase buttons to try
    the board or take the tour, open Profile → General for preferences, or talk in GlassEngine.
    No provider-key question, checklist or typed setup command is needed to finish bootstrap.
 
