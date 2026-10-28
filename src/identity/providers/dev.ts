@@ -54,7 +54,13 @@ export class DevIdentityProvider implements IdentityProvider {
 
   async verifyRequest(_req: Request): Promise<VerifiedIdentity | null> {
     await this.ensureUserProfile();
-    return { ...DEV_IDENTITY, grant: FIRST_PARTY_GRANT };
+    const user = await this.userStore.get(DEV_IDENTITY.id);
+    return {
+      ...DEV_IDENTITY,
+      displayName: user?.displayName ?? DEV_IDENTITY.displayName,
+      preferences: user?.preferences ?? DEV_IDENTITY.preferences,
+      grant: FIRST_PARTY_GRANT,
+    };
   }
 
   async listUsers(): Promise<User[]> {

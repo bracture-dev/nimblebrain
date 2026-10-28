@@ -1,4 +1,4 @@
-import type { BootstrapResponse } from "../../src/api/schemas/responses.ts";
+import type { BootstrapResponse, ToolCallResponse } from "../../src/api/schemas/responses.ts";
 import { readJson } from "../helpers/http.ts";
 /**
  * `instance.json` names the identity provider, `dev` included, and nothing
@@ -63,6 +63,43 @@ describe("instance.json selects the identity provider", () => {
     expect(res.status).toBe(200);
     const body = await readJson<BootstrapResponse>(res);
     expect(body.user.id).toBe(DEV_IDENTITY.id);
+  });
+
+  it("saved dev preferences reach the next request and survive a runtime restart", async () => {
+    runtime = await startRuntime({ auth: { adapter: "dev" } });
+    handle = startServer({ runtime, port: 0 });
+    const call = async (tool: string, args: Record<string, unknown> = {}) => {
+      const response = await fetch(`http://localhost:${handle!.port}/v1/tools/call`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ server: "nb", tool, arguments: args }),
+      });
+      expect(response.status).toBe(200);
+      const body = await readJson<ToolCallResponse>(response);
+      expect(body.isError).toBe(false);
+      return body.structuredContent as { preferences: Record<string, unknown> };
+    };
+    const saved = {
+      displayName: "Local Developer",
+      timezone: "Pacific/Honolulu",
+      locale: "en-US",
+      theme: "light",
+      model: "anthropic:claude-sonnet-4-6",
+    };
+    await call("set_preferences", saved);
+    const nextRequest = (await call("get_config")).preferences;
+
+    handle.stop(true);
+    await runtime.shutdown();
+    runtime = await Runtime.start({
+      languageModel: createEchoModel(),
+      logging: { disabled: true },
+      workDir: lastWorkDir,
+    });
+    handle = startServer({ runtime, port: 0 });
+    const afterRestart = (await call("get_config")).preferences;
+
+    expect([nextRequest, afterRestart]).toEqual([saved, saved]);
   });
 
   it("a malformed adapter refuses runtime startup", async () => {

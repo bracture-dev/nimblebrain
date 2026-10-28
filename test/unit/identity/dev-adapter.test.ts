@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DevIdentityProvider } from "../../../src/identity/providers/dev.ts";
+import { FIRST_PARTY_GRANT } from "../../../src/identity/provider.ts";
+import { DEV_IDENTITY, DevIdentityProvider } from "../../../src/identity/providers/dev.ts";
 import { UserStore } from "../../../src/identity/user.ts";
 import { log } from "../../../src/observability/log.ts";
 import { WorkspaceStore } from "../../../src/workspace/workspace-store.ts";
@@ -76,6 +77,44 @@ describe("DevIdentityProvider", () => {
       const adapter = new DevIdentityProvider(workDir, userStore);
       const identity = await adapter.verifyRequest(dummyRequest());
       expect(identity!.orgRole).toBe("admin");
+    });
+
+    test("reads presentation preferences without taking authority from the stored profile", async () => {
+      const adapter = new DevIdentityProvider(workDir, userStore);
+      await adapter.verifyRequest(dummyRequest());
+      const user = await userStore.get(DEV_IDENTITY.id);
+      await writeFile(
+        join(workDir, "users", DEV_IDENTITY.id, "profile.json"),
+        JSON.stringify({
+          ...user,
+          id: "different-user",
+          email: "alice@example.com",
+          orgRole: "member",
+          grant: { kind: "resource", audience: ["http://localhost/other"] },
+          displayName: "Local Developer",
+          preferences: { timezone: "Pacific/Honolulu", theme: "light" },
+        }),
+      );
+
+      for (const provider of [adapter, new DevIdentityProvider(workDir, new UserStore(workDir))]) {
+        expect(await provider.verifyRequest(dummyRequest())).toEqual({
+          ...DEV_IDENTITY,
+          displayName: "Local Developer",
+          preferences: { timezone: "Pacific/Honolulu", theme: "light" },
+          grant: FIRST_PARTY_GRANT,
+        });
+      }
+    });
+
+    test("falls back to the fixed dev identity if the profile disappears", async () => {
+      const adapter = new DevIdentityProvider(workDir, userStore);
+      await adapter.verifyRequest(dummyRequest());
+      await userStore.delete(DEV_IDENTITY.id);
+
+      expect(await adapter.verifyRequest(dummyRequest())).toEqual({
+        ...DEV_IDENTITY,
+        grant: FIRST_PARTY_GRANT,
+      });
     });
   });
 
