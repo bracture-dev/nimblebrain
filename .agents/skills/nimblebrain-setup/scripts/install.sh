@@ -23,6 +23,12 @@ echo "[install] Bun $have (package.json pins $pin)"
 install() {
   echo "[install] $1"
   (cd "$1" && bun install --frozen-lockfile --ignore-scripts)
+  if [ ! -d "$1/node_modules" ]; then
+    echo "[install] bun install returned success, but $1/node_modules is missing." >&2
+    echo "[install] Check npm/Bun dry-run settings (.npmrc or bunfig.toml); resolve the install restriction and rerun setup." >&2
+    echo "[install] Package-manager settings were left unchanged." >&2
+    return 1
+  fi
 }
 
 install .

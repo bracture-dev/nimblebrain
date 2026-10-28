@@ -81,6 +81,7 @@ esac`,
     printf '%s %s\n' "$PWD" "$*" >> "$NB_TEST_ROOT/packages"
     if [ "$1" = install ]; then
       [ "$*" = 'install --frozen-lockfile --ignore-scripts' ] || exit 91
+      [ "$NB_TEST_FAIL" != dry-run ] || exit 0
       mkdir -p node_modules
       [ "$NB_TEST_FAIL" != web ] || [ "$PWD" != "$NB_TEST_DIR/web" ] || exit 41
     else
@@ -203,6 +204,26 @@ test("native configuration failure retains prior successful agents and additions
   expect(setup.state().added).toEqual(expect.arrayContaining(prior.added));
   expect(setup.state().added).toContain("codex-feature:mcp_2026_07_28");
   expect(setup.state().added).not.toContain("codex-mcp:nimblebrain");
+});
+
+test("setup retries an install that returned success without creating dependencies", () => {
+  const setup = fixture();
+  const result = setup.run("dry-run");
+  expect(result.status).toBe(1);
+  expect(result.output).toContain("node_modules is missing");
+  expect(result.output).toContain("dry-run");
+  expect(existsSync(join(setup.dir, "node_modules"))).toBe(false);
+  expect(setup.state().installedCommit).toBeUndefined();
+  expect(setup.state().agents).toEqual({});
+  expect(existsSync(resolve(setup.dir, "../claude-door"))).toBe(false);
+  expect(existsSync(join(setup.dir, ".nimblebrain-worktree/install.pending"))).toBe(true);
+  expect(setup.packages()).not.toContain("run build");
+
+  expect(setup.run().status).toBe(0);
+  expect(existsSync(join(setup.dir, "node_modules"))).toBe(true);
+  expect(setup.state().installedCommit).toBe("commit-one");
+  expect(setup.state().agents).toEqual({ claude: true });
+  expect(existsSync(join(setup.dir, ".nimblebrain-worktree/install.pending"))).toBe(false);
 });
 
 for (const failure of ["web", "build"]) {
