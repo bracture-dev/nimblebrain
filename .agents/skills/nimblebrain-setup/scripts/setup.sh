@@ -61,12 +61,12 @@ for tool in bun node curl; do
 done
 
 # Record what this run added, also when it stops part way (M1). The other agent's entries are kept.
-state="" url="" ws="" head=""
+state="" url="" ws="" head="" agent_ready=0
 save_state() {
   [ -n "$state" ] && [ -d "$(dirname "$state")" ] || return 0
   local handoff=${XDG_STATE_HOME:-$HOME/.local/state}/nimblebrain/install.json
   ADDED=$(printf '%s\n' "${added[@]+"${added[@]}"}") HANDOFF=$handoff STATE=$state DIR=$dir REPO=$url \
-    REF=$ref API=$api WEB=$web SC=$sc GE=$ge WS=$ws AGENT=$agent HEAD=$head bun -e '
+    REF=$ref API=$api WEB=$web SC=$sc GE=$ge WS=$ws AGENT=$agent AGENT_READY=$agent_ready HEAD=$head bun -e '
     const e = process.env;
     const old = await Bun.file(e.STATE).json().catch(() => ({}));
     // What install.sh added to the agents (marketplace, plugin) before this checkout existed.
@@ -78,7 +78,7 @@ save_state() {
       nbDir: e.DIR, repo: keep("repo", e.REPO), ref: e.REF,
       ports: { api: +e.API || old.ports?.api, web: +e.WEB || old.ports?.web, showcase: +e.SC || old.ports?.showcase, glass: +e.GE || old.ports?.glass },
       workspaceId: keep("workspaceId", e.WS), installedCommit: keep("installedCommit", e.HEAD),
-      agents: { ...(old.agents ?? {}), ...(e.WS ? { [e.AGENT]: true } : {}) },
+      agents: { ...(old.agents ?? {}), ...(e.WS && e.AGENT_READY === "1" ? { [e.AGENT]: true } : {}) },
       added: [...new Set([...(old.added ?? []), ...fromInstall, ...e.ADDED.split("\n").filter(Boolean)])],
     };
     const { updatedAt: _, ...prev } = old;
@@ -162,14 +162,20 @@ for pair in "NB_API_PORT=$api" "NB_WEB_PORT=$web" "NB_PUBLIC_ORIGIN=http://local
 done
 
 # 3. Dependencies, once per commit.
-head=$(git -C "$dir" rev-parse HEAD)
+checkout_head=$(git -C "$dir" rev-parse HEAD)
 installed=$(STATE=$state bun -e 'const s = await Bun.file(process.env.STATE).json().catch(() => ({})); console.log(s.installedCommit ?? "")')
-if [ -d "$dir/node_modules" ] && [ "$installed" = "$head" ]; then
+pending="$work/install.pending"
+if [ -d "$dir/node_modules" ] && [ "$installed" = "$checkout_head" ] && [ ! -e "$pending" ]; then
   step "dependencies already installed for $(git -C "$dir" rev-parse --short HEAD)"
 else
+  # A failed repair of this same commit must retry even after node_modules is recreated.
+  touch "$pending"
   bash "$scripts/install.sh" "$dir"
+  rm "$pending"
   changed=1
 fi
+# The EXIT trap must keep the previous commit if any install or UI build fails.
+head=$checkout_head
 save_state
 
 # 4. Run: the examples first (GlassEngine writes its token), then NimbleBrain, then the connectors.
@@ -237,6 +243,7 @@ else
     ask "Codex already has an MCP server named nimblebrain at $have; this install's door is $door. Replace it (codex mcp remove nimblebrain, then rerun), or keep it."
   fi
 fi
+agent_ready=1
 
 # 6. A Desktop shortcut that opens NimbleBrain in the default browser (macOS reads .webloc files).
 #    It holds only the localhost address, so a Desktop that iCloud syncs copies nothing private.
